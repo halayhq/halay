@@ -1,0 +1,1 @@
+{ "name": "halay-plugin-invalid", "version": "0.1.0", "private": true, "halay": { "id": "invalid", "permissions": ["root"] } }

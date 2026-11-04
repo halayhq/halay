@@ -1,0 +1,1 @@
+{ "name": "halay-plugin-future", "version": "0.1.0", "private": true, "halay": { "id": "future", "api": "^2.0", "permissions": [] } }

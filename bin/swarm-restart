@@ -1,0 +1,8 @@
+#!/bin/sh
+# Restart the swarm server from one of its terminals: asks the server (SIGUSR2) to start a detached helper that waits
+# for it to exit and starts it again, the same as Settings → Restart server. The terminal keeps running (its shell lives
+# in pty-host.js, not in the server) and the page reattaches when the server is back.
+pidfile=${HALAY_PID_FILE:?"not in a swarm terminal: use Settings → Restart server"}
+pid=$(cat "$pidfile" 2>/dev/null) || { echo "no running swarm server ($pidfile missing)"; exit 1; }
+echo "Restarting the swarm server (pid $pid). This terminal stays; the page reconnects when the server is back."
+kill -USR2 "$pid"

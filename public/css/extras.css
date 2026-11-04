@@ -1,0 +1,59 @@
+  /* todos, tasks, approvals inbox, notifications, settings */
+  #tools { display:flex; gap:6px; flex-wrap:wrap; padding:0 14px 10px; }
+  #tools button { white-space:nowrap; }
+  .badge { display:inline-block; min-width:18px; padding:0 5px; border-radius:9px; background:var(--err); color:var(--on-st); font-size:11px; font-weight:600; line-height:18px; text-align:center; margin-left:5px; vertical-align:1px; }
+  .badge.mut { background:var(--mut); color:var(--bg); } /* --mut passes 4.5:1 on --bg, so the reverse holds too; white on a light dark-mode --mut did not */
+  .badge[hidden] { display:none; }
+  .pill { display:inline-block; font-size:11px; line-height:16px; padding:0 7px; border-radius:8px; color:var(--on-st); margin-left:6px; vertical-align:1px; }
+  .pill.done { background:var(--ok); } .pill.error { background:var(--err); } .pill.blocked { background:var(--acc); color:var(--on-acc); }
+  .agent.attn > b { font-weight:800; }
+  .agent small.tdo { color:var(--mut); }
+  #todos { border-bottom:1px solid var(--line); padding:6px 14px; background:var(--card); flex:none; max-height:35dvh; overflow:auto; }
+  #todos summary { cursor:pointer; font-size:13px; color:var(--mut); min-height:28px; line-height:28px; }
+  #todos ul { list-style:none; margin:4px 0 2px; padding:0; font-size:14px; }
+  #todos li { padding:3px 0; display:flex; gap:8px; overflow-wrap:anywhere; }
+  #todos li .ck { flex:none; width:1.2em; text-align:center; }
+  #todos li.completed { color:var(--mut); text-decoration:line-through; }
+  #todos li.in_progress { font-weight:600; }
+  .fld { width:100%; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); font-size:16px; }
+  textarea.fld { resize:vertical; min-height:64px; }
+  .mutl { color:var(--mut); font-size:13px; }
+  #tdlg, #adlg, #sdlg { width:min(640px, 94vw); }
+  #tlist:focus, #alist:focus { outline:0; }
+  #tlist, #alist { max-height:50vh; overflow:auto; border:1px solid var(--line); border-radius:8px; margin:10px 0; }
+  #alist { border:0; display:flex; flex-direction:column; gap:10px; max-height:65vh; }
+  #alist .msg { max-width:100%; }
+  #alist .msg.perm .an { display:block; font-weight:600; cursor:pointer; color:var(--acc); }
+  .task { padding:10px 12px; border-top:1px solid var(--line); } .task:first-child { border-top:0; }
+  .task .tt { display:flex; gap:8px; align-items:baseline; } .task .tt b { flex:1; min-width:0; overflow-wrap:anywhere; }
+  .task small { display:block; color:var(--mut); overflow-wrap:anywhere; }
+  .st-chip { font-size:11px; padding:0 7px; border-radius:8px; border:1px solid var(--line); color:var(--mut); flex:none; }
+  .st-chip.running { background:var(--acc); border-color:var(--acc); color:var(--on-acc); } .st-chip.done { background:var(--ok); border-color:var(--ok); color:var(--on-st); } .st-chip.failed { background:var(--err); border-color:var(--err); color:var(--on-st); }
+  .task .tb { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; align-items:center; }
+  .task .tb select { max-width:100%; min-width:0; flex:1 1 140px; }
+  #tform { display:flex; flex-direction:column; gap:8px; }
+  #sdlg h4 { margin:14px 0 6px; }
+  #sdlg label.chk { display:flex; gap:10px; align-items:center; min-height:36px; }
+  #sdlg label.chk input { width:20px; height:20px; flex:none; }
+  #sdlg .fl { display:flex; flex-direction:column; gap:4px; margin:8px 0; }
+  @media (max-width:700px) {
+    #tools { padding:0 12px 10px; } #tools button { flex:1 1 auto; }
+    #tdlg, #adlg, #sdlg { width:94vw; }
+    #tlist { max-height:42dvh; } #alist { max-height:70dvh; }
+    .task .tb button { min-height:44px; min-width:44px; }
+    #todos { padding:4px 12px; }
+    #tdlg, #adlg, #sdlg { overflow-x:hidden; }
+  }
+  /* attachments */
+  .atray { display:flex; gap:6px; flex-wrap:wrap; padding:6px 14px 0; flex:none; }
+  #dlg .atray { padding:6px 0 0; }
+  .achip { position:relative; display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:3px 4px 3px 8px; border:1px solid var(--line); border-radius:12px; background:var(--card); font-size:13px; overflow:hidden; }
+  .achip .an { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
+  .achip small { color:var(--mut); white-space:nowrap; }
+  .achip.bad { border-color:var(--err); } .achip.bad small { color:var(--err); white-space:normal; }
+  .achip button { padding:0 6px; min-width:0; min-height:0; border:0; background:none; color:var(--mut); }
+  .achip i { position:absolute; left:0; bottom:0; height:2px; background:var(--acc); }
+  #attach { min-width:44px; padding:0 8px; }
+  #main.dropping, #dlg.dropping { outline:2px dashed var(--acc); outline-offset:-4px; }
+  .msg.user .fchip { color:inherit; }
+  #nprompt { margin-top:8px; }

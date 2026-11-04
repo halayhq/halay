@@ -1,0 +1,16 @@
+{
+  "name": "halay-plugin-machines",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "Sidebar block with the load (CPU, RAM, fullest disk) of this machine and every peer.",
+  "halay": {
+    "id": "machines",
+    "displayName": "Machines",
+    "api": "^1.0",
+    "ui": "ui.js",
+    "styles": ["ui.css"],
+    "permissions": ["ui"],
+    "defaultEnabled": true
+  }
+}

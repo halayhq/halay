@@ -1,0 +1,19 @@
+{
+  "name": "halay-plugin-ntfy",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "Send your notifications to an ntfy topic (ntfy.sh or your own server) as well. Pick a hard-to-guess topic: anyone who knows it can read it on ntfy.sh.",
+  "halay": {
+    "id": "ntfy",
+    "displayName": "ntfy",
+    "api": "^1.0",
+    "server": "server.js",
+    "permissions": ["notify:channel", "network"],
+    "settings": {
+      "server": { "type": "string", "title": "ntfy server", "default": "https://ntfy.sh" },
+      "topic": { "type": "string", "title": "Topic", "required": true, "pattern": "[\\w-]{1,64}", "placeholder": "e.g. swarm-a8f3k29x", "help": "Letters, digits, _ and -." },
+      "token": { "type": "string", "title": "Access token (optional, for protected topics)", "secret": true }
+    }
+  }
+}

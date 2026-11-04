@@ -1,0 +1,66 @@
+  /* git view, usage, search, watchdog, task dependencies */
+  #searchbar { padding:0 14px 10px; position:relative; } #searchbar .fld { min-height:40px; padding-right:40px; }
+  #q::-webkit-search-cancel-button { -webkit-appearance:none; appearance:none; display:none; }
+  #qx { position:absolute; right:16px; top:2px; width:36px; height:36px; padding:0; border:0; background:none; color:var(--mut); font-size:20px; line-height:1; min-height:0; }
+  #qx:hover { color:var(--fg); } #qx[hidden] { display:none; }
+  #sres { overflow:auto; flex:1; } #sres[hidden] { display:none; }
+  .sr { padding:10px 14px; border-top:1px solid var(--line); cursor:pointer; overflow-wrap:anywhere; }
+  .sr .sh2 { display:flex; gap:8px; align-items:baseline; } .sr .sh2 b { flex:1; min-width:0; } .sr .sh2 span { color:var(--mut); font-size:12px; flex:none; }
+  .sr .sn { color:var(--mut); font-size:13px; margin-top:2px; word-break:break-word; } mark { background:#fde68a; color:#1a1a1a; border-radius:3px; padding:0 1px; }
+  .msg.hit { outline:2px solid var(--acc); outline-offset:2px; border-radius:6px; }
+  .pill.stuck, .pill.usage { background:var(--warn); }
+  #uline { padding:4px 14px; font-size:12px; border-bottom:1px solid var(--line); color:var(--mut); flex:none; overflow-wrap:anywhere; }
+  #uline[hidden], #wd[hidden] { display:none; }
+  #wd { flex:none; display:flex; gap:10px; align-items:center; padding:8px 14px; background:var(--card); border-bottom:2px solid var(--warn); }
+  #wd span { flex:1; min-width:0; overflow-wrap:anywhere; font-size:14px; }
+  #gdlg, #udlg { width:min(860px, 96vw); }
+  .gbody { display:flex; flex-direction:column; gap:12px; margin-top:10px; }
+  .gcard { border:1px solid var(--line); border-radius:10px; padding:10px 12px; min-width:0; }
+  .gcard h5 { margin:0 0 4px; font-size:14px; overflow-wrap:anywhere; }
+  .gline { font-size:13px; color:var(--mut); margin:2px 0; overflow-wrap:anywhere; } .gline b { color:var(--fg); }
+  .gtag { font-size:11px; padding:0 7px; border-radius:8px; border:1px solid var(--line); color:var(--mut); margin-left:6px; vertical-align:1px; }
+  .gcard pre, pre.diff { margin:6px 0; padding:8px 10px; background:var(--card); border:1px solid var(--line); border-radius:8px; font:12px/1.4 ui-monospace, monospace; overflow:auto; max-height:55vh; white-space:pre; max-width:100%; }
+  pre.diff .a { color:var(--ok); } pre.diff .d { color:var(--err); } pre.diff .h { color:var(--acc); } pre.diff .m { color:var(--mut); }
+  .gfiles { font:12px ui-monospace, monospace; max-height:70vh; overflow:auto; border:1px solid var(--line); border-radius:8px; margin:6px 0; }
+  .gfiles > div { border-top:1px solid var(--line); } .gfiles > div:first-child { border-top:0; }
+  .gfr { display:flex; gap:8px; align-items:baseline; padding:6px 10px; cursor:pointer; } .gfr:hover { background:rgba(127,127,127,.1); }
+  .gfs { color:var(--mut); white-space:pre; } .gfp { flex:1; min-width:0; overflow-wrap:anywhere; } .gfn { color:var(--mut); white-space:nowrap; font-size:11px; }
+  .gfile.open > .gfr .gfp { font-weight:600; } .gfd { padding:0 8px 6px; } .gfd pre.diff { margin:2px 0; max-height:45vh; }
+  .gcommits { font-size:13px; } .gcommits div { padding:4px 0; border-top:1px solid var(--line); overflow-wrap:anywhere; } .gcommits div:first-child { border-top:0; } .gcommits small { color:var(--mut); }
+  .gerr { color:var(--err); font-size:13px; overflow-wrap:anywhere; margin:6px 0; } .gok { color:var(--ok); font-size:13px; margin:6px 0; overflow-wrap:anywhere; }
+  .gblock { border:1px solid var(--err); border-radius:8px; padding:8px 10px; color:var(--err); font-size:13px; margin:8px 0; } .gblock div { margin:2px 0; overflow-wrap:anywhere; }
+  .gconfirm { border:2px solid var(--acc); border-radius:10px; padding:10px 12px; margin:10px 0; font-size:14px; overflow-wrap:anywhere; }
+  .chk { display:flex; gap:10px; align-items:center; min-height:36px; } .chk input { width:20px; height:20px; flex:none; }
+  .scrollx { overflow-x:auto; max-width:100%; border:1px solid var(--line); border-radius:8px; margin:6px 0; }
+  table.ut { border-collapse:collapse; width:100%; font-size:13px; white-space:nowrap; } table.ut th, table.ut td { padding:6px 8px; border-top:1px solid var(--line); text-align:right; } table.ut th:first-child, table.ut td:first-child, table.ut th:nth-child(2), table.ut td:nth-child(2) { text-align:left; } table.ut thead th { border-top:0; background:var(--card); color:var(--mut); font-weight:500; }
+  table.ut tr.over td { color:var(--err); font-weight:600; }
+  .st-chip.ready { border-color:var(--ok); color:var(--ok); } .st-chip.blocked { border-color:var(--err); color:var(--err); } .st-chip.waiting { color:var(--mut); }
+  .dep-chip { display:inline-block; font-size:12px; padding:2px 8px; margin:2px 4px 2px 0; border:1px solid var(--line); border-radius:10px; color:var(--mut); max-width:100%; overflow-wrap:anywhere; } .dep-chip.done { border-color:var(--ok); color:var(--ok); } .dep-chip.failed, .dep-chip.gone { border-color:var(--err); color:var(--err); } .dep-chip.running { border-color:var(--acc); color:var(--acc); }
+  .tblock { color:var(--err); font-size:13px; overflow-wrap:anywhere; }
+  #tdeps { max-height:160px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:2px 10px; } #tdeps .chk { min-height:44px; } #tdeps .chk span { overflow-wrap:anywhere; min-width:0; }
+  #wtopt { margin-top:8px; } #wtopt .fld { margin-top:4px; }
+  #ualerts .urow { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:6px 0 10px; } #ualerts .urow b { grid-column:1 / -1; }
+  #sdlg .urow input, #sdlg #wdrow input[type=number] { min-height:44px; }
+  /* schedules (Tasks panel, second tab) */
+  .ttabs { display:flex; gap:6px; margin:10px 0 0; } .ttabs button { flex:1 1 0; } .ttabs button.on { background:var(--fg); border-color:var(--fg); color:var(--bg); } .ttabs button.on .badge { background:var(--bg); color:var(--fg); }
+  #tpaneb[hidden], #tpanes[hidden], #sform[hidden], #sfcwd[hidden], #snew[hidden] { display:none; }
+  #slist { max-height:50vh; overflow:auto; border:1px solid var(--line); border-radius:8px; margin:10px 0; }
+  .sched.off > .tt b, .sched.off .sdesc { color:var(--mut); }
+  .sched .sdesc { font-size:14px; margin:2px 0; overflow-wrap:anywhere; }
+  .sched .stog { min-height:0; gap:6px; flex:none; font-size:13px; color:var(--mut); }
+  .sruns { margin-top:8px; border-left:2px solid var(--line); padding-left:10px; display:flex; flex-direction:column; gap:8px; }
+  .srun .tt span:first-child { flex:1; min-width:0; font-size:13px; } .srl { font-size:13px; color:var(--acc); }
+  #sform { display:flex; flex-direction:column; gap:8px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:10px 0; }
+  #sform .fl { display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--mut); min-width:0; } #sform .fl .fld { color:var(--fg); }
+  .sgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:8px; }
+  .spresets { display:flex; gap:6px; flex-wrap:wrap; } .spresets button { font-size:13px; }
+  #sfprev { overflow-wrap:anywhere; }
+  @media (max-width:700px) {
+    #searchbar { padding:0 12px 10px; } #searchbar .fld { min-height:44px; padding-right:48px; } #qx { right:12px; top:0; width:44px; height:44px; min-height:44px; } .sr { padding:12px 14px; min-height:56px; }
+    #uline { padding:4px 12px; } #wd { padding:8px 12px; flex-wrap:wrap; } #wd button { min-height:44px; flex:1 1 100%; }
+    #gdlg, #udlg { width:94vw; overflow-x:hidden; } table.ut { font-size:12px; } .gcard { padding:10px; }
+    .gcard pre, pre.diff { max-height:50dvh; } .gfr { padding:12px 10px; min-height:44px; }
+    .gcard .row button, .gconfirm button { flex:1 1 auto; } .gcommits div { padding:8px 0; }
+    .ttabs button, .spresets button, #sform .row button { min-height:44px; } .spresets button { flex:1 1 40%; }
+    #slist { max-height:46dvh; } .sched .stog input { width:24px; height:24px; } .srl { display:inline-block; padding:8px 0; }
+  }

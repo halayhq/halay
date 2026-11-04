@@ -1,0 +1,39 @@
+/* Terminal dialog (js/terminal.js): tabs in the header, xterm.js fills the body, key bar for phones. */
+#xdlg.dlgx { padding:0; overflow:hidden; box-sizing:border-box; width:min(1200px, 96vw); max-width:96vw; height:min(88dvh, 900px); max-height:88dvh; flex-direction:column; }
+#xdlg .dlg-head { align-items:center; padding:8px 8px 8px 12px; gap:6px; }
+#xtabs { flex:1; min-width:0; display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; }
+#xtabs::-webkit-scrollbar { display:none; }
+.xtab { flex:none; display:flex; align-items:center; border:1px solid var(--line); border-radius:9px; background:transparent; max-width:220px; }
+.xtab.on { background:var(--card); border-color:color-mix(in srgb, var(--acc) 45%, var(--line)); }
+.xtab.ended .xt { color:var(--mut); text-decoration:line-through; }
+.xtab button { border:0; background:transparent; box-shadow:none; min-height:0; color:inherit; }
+.xtab .xt { display:flex; align-items:center; gap:6px; padding:6px 4px 6px 10px; font-size:13px; min-width:0; }
+.xtab .xt span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.xtab .xx { padding:6px 8px 6px 4px; color:var(--mut); display:inline-flex; } .xtab .xx:hover { color:var(--fg); }
+.xtab .ic { width:14px; height:14px; flex:none; }
+#xbody { flex:1 1 auto; min-height:0; position:relative; border-top:1px solid var(--line); background:var(--bg); }
+#xempty { padding:24px 20px; }
+.xhost { position:absolute; inset:6px 4px 4px 10px; }
+.xhost[hidden] { display:none; }
+.xhost .xterm { height:100%; }
+.xhost .xterm-viewport { background-color:var(--bg) !important; } /* xterm.css paints the strip below the last row black */
+#xkeys { flex:none; display:flex; gap:4px; overflow-x:auto; padding:6px 8px calc(6px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); background:var(--side); scrollbar-width:none; }
+#xkeys button { flex:none; min-width:40px; min-height:36px; padding:4px 10px; font:500 14px/1 ui-monospace, SFMono-Regular, Menlo, monospace; border-radius:8px; touch-action:manipulation; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; user-select:none; -webkit-user-select:none; }
+#xkeys button.on { background:var(--acc); border-color:var(--acc); color:var(--on-acc); }
+@media (pointer: fine) { #xkeys { display:none; } }
+/* Copy / Paste on phones: plain text over the terminal, selectable with the phone's own handles */
+#xover { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; background:var(--bg); }
+#xover[hidden] { display:none; }
+.xovbar { flex:none; display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--line); }
+.xovbar span { flex:1; min-width:0; color:var(--mut); font-size:13px; }
+.xovbar button { min-height:36px; padding:6px 14px; }
+#xovt { flex:1; min-height:0; margin:0; padding:8px 10px; border:0; border-radius:0; resize:none; background:var(--bg); color:var(--fg);
+  font:13px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; white-space:pre; overflow:auto; -webkit-user-select:text; user-select:text; }
+#xover[data-mode=paste] #xovt { font-size:16px; white-space:pre-wrap; } /* 16px: iOS doesn't zoom in */
+
+/* phones: full screen, sized to the visible area above the soft keyboard (--vvh/--vvt from js/terminal.js) */
+@media (max-width: 700px) {
+  #xdlg.dlgx { width:100vw; max-width:100vw; height:var(--vvh, 100dvh); max-height:var(--vvh, 100dvh); margin:0; top:var(--vvt, 0); left:0; border-radius:0; border-width:0; }
+  #xdlg .dlg-head { padding-top:calc(6px + env(safe-area-inset-top)); }
+  .xhost { inset:4px 2px 2px 6px; }
+}

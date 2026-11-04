@@ -1,0 +1,149 @@
+/* Release polish, loaded last: skip link, focus rings, touch targets, first-run welcome, connection banner, About and
+   keyboard hints. Uses the theme.css tokens only. */
+
+/* skip link: first tab stop, visible only when focused */
+.skip { position:fixed; left:12px; top:calc(8px + env(safe-area-inset-top)); z-index:1000; padding:10px 14px; border-radius:10px; background:var(--acc); color:var(--on-acc); font-weight:600; text-decoration:none; transform:translateY(-200%); }
+.skip:focus { transform:none; outline:2px solid var(--fg); outline-offset:2px; }
+#main:focus { outline:none; }
+
+/* focus: every focusable thing gets a visible ring from the keyboard (buttons, selects and fields keep theme.css's softer ring) */
+:focus-visible { outline:2px solid var(--acc); outline-offset:2px; }
+:where(button, select, .fld, textarea, input:not([type=checkbox]):not([type=radio])):focus-visible { outline:none; }
+:where(button, select, summary, [role=tab], [role=menuitem], [role=option]):focus-visible { box-shadow:0 0 0 3px var(--acc-s), 0 0 0 1px var(--acc); }
+.arow:focus-visible, .agent:focus-visible, .wa:focus-visible, .srail a:focus-visible { outline:2px solid var(--acc); outline-offset:-2px; }
+input[type=checkbox]:focus-visible, input[type=radio]:focus-visible { outline:2px solid var(--acc); outline-offset:2px; }
+a { text-underline-offset:2px; }
+
+/* links that look like buttons */
+a.btn { display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:6px 12px; border:1px solid var(--line); border-radius:9px; background:var(--bg); color:var(--fg); box-shadow:var(--sh1); text-decoration:none; font-weight:500; }
+a.btn:hover { background:var(--card); }
+a.btn .ic + span { margin-left:0; }
+
+/* destructive buttons: red text outside menus too, a filled red only for .danger */
+button.red { color:var(--err); }
+button.red:hover { background:color-mix(in srgb, var(--err) 8%, var(--bg)); }
+
+/* search: clear is an icon; the shortcut hint only where there's a keyboard and a mouse */
+#qx { display:inline-flex; align-items:center; justify-content:center; }
+#qx .ic { width:16px; height:16px; }
+@media (hover: none), (pointer: coarse) { #kswitch { display:none; } #searchbar .fld { padding-right:44px; } }
+
+/* touch: icon-only buttons are at least 44px on touch screens, everywhere */
+@media (pointer: coarse) {
+  button:has(> svg.ic):not(:has(> span:not(.badge, .n, .sr-only))), .dlg-x, .dlg-icb, #qx, #bnotifx { min-width:44px; min-height:44px; }
+  .seg button, #tdlg .ttabs button, a.btn, #nbar #bnotif, #nbar #bnotifx, #limr, #xkeys button, #bkeys button { min-height:44px; }
+  #xkeys button, #bkeys button { min-width:44px; }
+  .chk { min-height:40px; display:flex; align-items:center; gap:8px; }
+}
+
+/* dialogs never run past the viewport (incl. the on-screen keyboard where the browser shrinks the layout) */
+dialog.dlgx:not(.page) { max-height:min(92dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px)); }
+#vdlg #vclose { padding:0; width:44px; }
+
+/* first run / welcome card (template #welcometpl in index.html) */
+#empty:not(.welcome) { margin:auto; padding:24px; color:var(--mut); text-align:center; }
+#empty.welcome { width:min(560px, 92%); }
+.welcome .wh { gap:12px; }
+.welcome .wh img { border-radius:9px; box-shadow:var(--sh1); flex:none; }
+.welcome .wh h2 { margin:0; font-size:21px; font-weight:650; letter-spacing:-.01em; }
+/* the product name as a wordmark (halay.app: lowercase, heavy, tight) and the tagline under it */
+.wordmark { font-weight:800 !important; letter-spacing:-.03em !important; }
+.welcome .wh h2.wordmark { font-size:24px; line-height:1.1; }
+.welcome .wh .tagline { margin:1px 0 0; font-size:13px; color:var(--mut); }
+.welcome .wnote { display:flex; gap:10px; align-items:flex-start; margin:0 0 16px; padding:10px 12px; border-radius:12px; font-size:13.5px; line-height:1.5;
+  background:color-mix(in srgb, #f59e0b 12%, var(--bg)); border:1px solid color-mix(in srgb, #f59e0b 40%, var(--line)); }
+.welcome .wnote[hidden] { display:none; }
+.welcome .wnote > .ic { color:var(--warn); margin-top:2px; }
+.welcome .wnote b { display:none; } .welcome .wnote:not(.missing) .wn-login, .welcome .wnote.missing .wn-missing { display:inline; }
+.welcome .wnote a { color:inherit; }
+.wsteps { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.wstep { display:flex; align-items:center; gap:12px; width:100%; min-height:56px; padding:10px 14px; text-align:left; border:1px solid var(--line); border-radius:12px; background:var(--bg); color:var(--fg); box-shadow:var(--sh1); text-decoration:none; font:inherit; cursor:pointer; }
+.wstep:hover { background:var(--card); }
+.wstep > .ic { width:20px; height:20px; color:var(--acc); }
+.wstep.primary { background:var(--acc); border-color:var(--acc); color:var(--on-acc); }
+.wstep.primary > .ic { color:var(--on-acc); }
+.wstep > span { display:flex; flex-direction:column; min-width:0; margin-left:0 !important; }
+.wstep b { font-weight:600; } .wstep small { color:var(--mut); font-size:12.5px; font-weight:400; }
+.wstep.primary small { color:color-mix(in srgb, var(--on-acc) 85%, transparent); }
+.wstep.primary:hover { background:var(--acc-h); }
+a.wstep:focus-visible { outline:none; box-shadow:0 0 0 3px var(--acc-s), 0 0 0 1px var(--acc); }
+
+/* phone first run: the sidebar is the start screen there, so it carries the same three starting points */
+#firstrun { display:none; margin:6px 14px 14px; }
+#firstrun p { margin:4px 2px 12px; color:var(--mut); font-size:14px; line-height:1.5; }
+@media (max-width: 700px) {
+  #side:not(:has(#list .arow[data-id]:not(.cond))):not(:has(#sres:not([hidden]))) #firstrun { display:block; flex:1 0 auto; }
+  #side:not(:has(#list .arow[data-id]:not(.cond))):not(:has(#sres:not([hidden]))) #list { flex:none; }
+}
+
+/* chat with no messages yet */
+#log:empty::before { content:"No messages yet. Write below to give the agent its first task."; margin:auto; color:var(--mut); font-size:14px; text-align:center; padding:24px; }
+
+/* chat header on mid-sized screens: icon-only tool buttons so the title keeps room */
+@media (min-width: 701px) and (max-width: 1400px) {
+  #hact .hb:not(.uchip) > .ic + span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  #hact .hb:not(.uchip) { min-width:36px; justify-content:center; }
+}
+
+/* the composer stays above the iOS home indicator and the on-screen keyboard (viewport: interactive-widget=resizes-content) */
+#bar { padding-left:max(10px, env(safe-area-inset-left)); padding-right:max(10px, env(safe-area-inset-right)); }
+@media (min-width: 701px) { #bar { padding-left:max(18px, calc((100% - 860px) / 2)); padding-right:max(18px, calc((100% - 860px) / 2)); } }
+
+/* "Reconnecting…" banner (created by js when the live connection drops) */
+.conn-banner { position:fixed; z-index:900; top:calc(8px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); max-width:calc(100vw - 24px); box-sizing:border-box;
+  display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:999px; font-size:13px; font-weight:500; line-height:1.3;
+  color:color-mix(in srgb, #92400e 90%, var(--fg)); background:color-mix(in srgb, #f59e0b 16%, var(--bg)); border:1px solid color-mix(in srgb, #f59e0b 45%, var(--line)); box-shadow:var(--sh2);
+  animation:connin .2s ease-out; }
+.conn-banner[hidden] { display:none; }
+.conn-banner .ic { color:var(--warn); }
+.conn-banner button { min-height:28px; padding:2px 10px; font-size:12.5px; }
+@keyframes connin { from { opacity:0; transform:translate(-50%, -6px); } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme=light]) .conn-banner { color:#fcd34d; } }
+:root[data-theme=dark] .conn-banner { color:#fcd34d; }
+
+/* Settings → About and help */
+.about-name { margin:0 0 10px; line-height:1.5; } .about-name b { display:block; font-size:16px; margin-bottom:2px; } .about-name b.wordmark { font-size:18px; display:inline; } .about-name .tagline { display:block; font-weight:600; margin-bottom:2px; }
+.about-links { gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+dl.keys { margin:6px 0 0; display:grid; gap:2px; }
+dl.keys > div { display:grid; grid-template-columns:minmax(110px, auto) 1fr; gap:12px; align-items:baseline; padding:6px 0; border-bottom:1px solid var(--line); }
+dl.keys > div:last-child { border-bottom:0; }
+dl.keys dt { white-space:nowrap; } dl.keys dd { margin:0; color:var(--mut); font-size:13.5px; }
+kbd { font:500 12px/1 -apple-system, system-ui, sans-serif; display:inline-block; min-width:1.4em; text-align:center; padding:3px 6px; border:1px solid var(--line); border-bottom-width:2px; border-radius:6px; background:var(--card); color:var(--fg); }
+#kswitch kbd { border:0; background:none; padding:0; min-width:0; color:inherit; }
+html:not(.mac) kbd.kmod { font-size:0; } html:not(.mac) kbd.kmod::before { content:"Ctrl"; font-size:12px; }
+@media (hover: none) and (pointer: coarse) { #sabout h4#kshead, #sabout dl.keys { display:none; } }
+
+/* plugin cards (Settings → Plugins): same card language as the rest */
+.pcard { background:var(--bg); border-radius:12px; padding:12px 14px; box-shadow:var(--sh1); }
+.pcard + .pcard { margin-top:8px; }
+.pcard :is(input, select, textarea).fld { width:100%; box-sizing:border-box; }
+
+/* motion: everything off when asked */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
+}
+
+/* loading: a list that fetches is empty only until its first answer arrives (each one renders an empty state after that) */
+:is(#sres, #hlist, #tlist, #alist, #slist, #rmlist, #botlist, #flist):empty::before { content:"Loading…"; display:block; padding:28px 16px; text-align:center; color:var(--mut); font-size:13.5px; }
+#sres > .sr.mutl:only-child { text-align:center; padding:28px 16px; cursor:default; }
+@media (max-width: 700px) { #hact #browb > .ic + span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; } } /* icon-only like Files, Editor, Git */
+@media (pointer: coarse) { #nbar > button { display:inline-flex; align-items:center; align-self:stretch; } }
+.chk[hidden], label.fl[hidden] { display:none; } /* rows the chosen agent CLI has no use for (new-agent form) */
+.hrow.busy { opacity:.6; pointer-events:none; cursor:progress; }
+
+/* the halay Mac app (macos/) draws the page under its title bar: the window's buttons sit at the top left, over the first row */
+/* --halay-bar (title bar height) and --halay-inset (right edge of the buttons) come from the app (WebWindow.updateInsets) */
+html.halay-mac #side h1, html.halay-mac #head { min-height:var(--halay-bar, 52px); box-sizing:border-box; padding-top:0; padding-bottom:0; align-items:center; }
+html.halay-mac #side h1 { padding-left:var(--halay-inset, 84px); }
+/* the narrow layout has the chat header full width: only its first row is under the window's buttons, so only the back button makes room */
+/* wrapped header (two rows): the buttons row is under the window's buttons' line, so keep it centred on it with padding, not flush with the top */
+@media (max-width: 1100px) { html.halay-mac #head { padding-top:calc(var(--halay-bar, 52px) / 2 - 18px); padding-bottom:8px; } }
+@media (max-width: 700px) { html.halay-mac #head .hb, html.halay-mac #head #more, html.halay-mac #head #back { min-height:36px; } } /* a mouse, not a finger: 36px rows leave room above and below */
+@media (max-width: 700px) { html.halay-mac #head #back { margin-left:calc(var(--halay-inset, 84px) - 14px); } }
+
+/* between the narrow layout and a wide window the chat header's buttons don't fit next to the title (the sidebar keeps its 260px): the buttons get a row of their own, as in the narrow layout */
+@media (min-width: 701px) and (max-width: 1100px) {
+  #head { flex-wrap:wrap; }
+  #hact { flex:0 0 100%; order:4; overflow-x:auto; scrollbar-width:none; }
+  #hact > * { flex:none; }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "halay-plugin-webhook-notify",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "Post your notifications to a webhook: Slack or Discord incoming webhooks, n8n, Home Assistant, or anything that takes JSON. Also gives the swarm chat a notify_user tool.",
+  "halay": {
+    "id": "webhook-notify",
+    "displayName": "Webhook notifications",
+    "api": "^1.0",
+    "server": "server.js",
+    "ui": "ui.js",
+    "permissions": ["notify:channel", "events:tasks", "mcp", "routes", "ui", "network"],
+    "settings": {
+      "url": { "type": "string", "title": "Webhook URL", "secret": true, "required": true, "help": "Kept on this server and never shown again." },
+      "format": { "type": "string", "title": "Payload", "enum": ["slack", "discord", "json"], "default": "slack", "help": "slack: {text}; discord: {content}; json: {kind, title, body, link, agentId}." },
+      "skipped": { "type": "boolean", "title": "Also post when a scheduled run is skipped", "default": true }
+    }
+  }
+}

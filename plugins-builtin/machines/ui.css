@@ -1,0 +1,11 @@
+/* Machines sidebar block (plugins-builtin/machines): this host and the peers, one compact row each */
+.mrow { padding:3px 6px 2px; }
+.mhd { display:flex; align-items:center; gap:4px; min-width:0; }
+.mhd b { min-width:0; color:var(--fg); font-size:12px; font-weight:600; overflow-wrap:anywhere; }
+.mhd .hopen { flex:none; display:inline-flex; align-items:center; padding:4px; margin:-4px -2px; color:var(--mut); } .mhd .hopen:hover { color:var(--fg); }
+.mhd .hopen .ic { width:13px; height:13px; }
+.mhd .hm { margin-left:auto; }
+.mst { display:flex; gap:10px; margin-top:3px; font-size:12px; white-space:nowrap; }
+.mst .hm { flex:1; }
+.mrow .hm { font-variant-numeric:tabular-nums; } .mrow .hm.warn { color:#b45309; } .mrow .hm.high { color:var(--err); }
+.mrow.off b { color:var(--mut); font-weight:400; }

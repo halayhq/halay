@@ -1,0 +1,181 @@
+  /* Sidebar and navigation: icon nav (bottom tab bar on phones), notifications banner, grouped agent list, quick switcher. */
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  #side h1 { padding-bottom:8px; }
+  #side h1 #new { display:inline-flex; align-items:center; padding:5px 12px 5px 9px; font-size:13px; }
+  #side h1 #new .ic { width:15px; height:15px; } #side h1 #new .ic + span { margin-left:4px; }
+
+  /* page nav: the frequent pages as icon + short label (data-label), the rest behind More (#bmore → #tmenu, js/pages.js) */
+  /* six fit the 260px sidebar in one row; with plugin pages (js/plugins.js) or a wider font they shrink and the labels ellipsize */
+  #tools { display:flex; gap:0; flex-wrap:nowrap; padding:0 6px 10px; }
+  #tools button { flex:1 1 auto; min-width:0; position:relative; display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    height:auto; min-height:46px; padding:5px 2px 4px; border-radius:9px; border-color:transparent; background:transparent; box-shadow:none; color:var(--mut); }
+  #tools button::after { content:attr(data-label); font-size:10px; font-weight:500; line-height:1.1; white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+  #tools button:hover { background:color-mix(in srgb, var(--fg) 6%, transparent); color:var(--fg); }
+  #tools button:focus-visible { border-color:var(--acc); }
+  #tools .ic { width:18px; height:18px; vertical-align:0; }
+  #tools .badge { position:absolute; top:1px; left:calc(50% + 3px); margin:0; min-width:16px; line-height:16px; padding:0 4px; font-size:10px; box-shadow:0 0 0 2px var(--side); }
+  #tools .badge.mut { background:var(--mut); }
+  #tools .badge.dot { min-width:0; width:9px; height:9px; padding:0; top:4px; left:calc(50% + 6px); font-size:0; background:var(--acc); } /* More: Terminal/Browser running */
+  /* More menu rows: .menu[popover] (ui-chat.css) with the id rules from older stylesheets undone, a count on the right */
+  #tmenu { min-width:220px; } #tmenu.still { animation:none !important; } /* put back after a page opened under it (pages.js) */
+  #tmenu > button { padding:8px 10px; font-size:14px; }
+  #tmenu > button .badge { margin-left:auto; }
+  #tmenu > button small { margin-left:auto; font-size:12px; color:var(--mut); }
+
+  /* notifications banner (settings.js toggles #bnotif[hidden]) */
+  /* a call to action: a solid --cta fill when the theme has one (Halay: lime with ink text, like the site's buttons), else the soft tint */
+  #nbar { display:flex; align-items:center; margin:0 10px 10px; border:1px solid var(--cta, color-mix(in srgb, var(--acc) 30%, var(--line))); background:var(--cta, var(--acc-s)); border-radius:10px; }
+  #nbar:has(#bnotif[hidden]), #nbar.off { display:none; }
+  #nbar button { border:0; background:transparent; box-shadow:none; min-height:0; color:var(--on-cta, var(--fg)); }
+  #nbar button:hover { background:color-mix(in srgb, var(--on-cta, var(--fg)) 8%, transparent); }
+  #bnotif { flex:1; display:flex; align-items:center; gap:0; padding:6px 10px; font-size:12.5px; text-align:left; color:var(--on-cta, var(--fg)); }
+  #bnotif .ic { color:var(--on-cta, var(--acc)); width:15px; height:15px; }
+  #bnotifx { padding:6px 8px; color:var(--mut); display:inline-flex; } #bnotifx:hover { color:var(--fg); }
+  #bnotifx .ic { width:14px; height:14px; }
+
+  /* search + ⌘K hint */
+  #searchbar { padding:0 10px 8px; }
+  #searchbar .fld { min-height:36px; padding:6px 52px 6px 12px; font-size:13.5px; }
+  #kswitch { position:absolute; right:16px; top:6px; height:24px; padding:0 6px; min-height:0; border:1px solid var(--line); border-radius:6px; background:var(--side); box-shadow:none; color:var(--mut); display:inline-flex; align-items:center; }
+  #kswitch kbd { font:500 11px/1 -apple-system, system-ui, sans-serif; }
+  #kswitch:hover { color:var(--fg); }
+  #searchbar:has(#qx:not([hidden])) #kswitch { display:none; }
+  #qx { right:12px; top:0; }
+
+  /* grouped list */
+  #list { padding:0 8px 12px; }
+  .sgrp { margin-top:6px; }
+  .sgh { display:flex; align-items:center; gap:4px; width:100%; padding:6px 6px 4px; border:0; background:none; box-shadow:none; font-size:11.5px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--mut); text-align:left; border-radius:7px; min-height:0; }
+  .sgh:hover { background:none; color:var(--fg); } .sgh:active { transform:none; }
+  .sgh .n { margin-left:auto; font-weight:500; font-variant-numeric:tabular-nums; opacity:.8; }
+  .sgh .car, .kids-t .car { width:13px; height:13px; transition:transform .12s; vertical-align:0; }
+  .sgh[aria-expanded=true] .car, .kids-t[aria-expanded=true] .car { transform:rotate(90deg); }
+  .sgrp.need .sgh { color:var(--err); }
+
+  .arow { display:grid; grid-template-columns:18px minmax(0, 1fr); column-gap:8px; align-items:center; padding:7px 10px; margin:1px 0; border-radius:10px; color:inherit; text-decoration:none; cursor:pointer; transition:background .12s;
+    width:100%; text-align:left; font:inherit; border:0; background:none; box-shadow:none; }
+  #list .arow { -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+  .sgrp.hid .arow { opacity:.7; }
+  .rowmenu { position:fixed; z-index:50; min-width:200px; max-width:260px; padding:4px; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:12px; box-shadow:var(--sh3); }
+  .rowmenu button { display:flex; align-items:center; width:100%; padding:9px 10px; border:0; background:none; box-shadow:none; text-align:left; border-radius:8px; font:inherit; min-height:0; }
+  .rowmenu button:hover, .rowmenu button:focus-visible { background:color-mix(in srgb, var(--fg) 7%, transparent); outline:none; }
+  .rowmenu p { margin:0; padding:2px 10px 6px; font-size:11.5px; color:var(--mut); line-height:1.4; }
+  .arow:hover { background:color-mix(in srgb, var(--fg) 5%, transparent); } button.arow:active { transform:none; }
+  .arow:focus-visible { outline:none; box-shadow:0 0 0 2px var(--acc); }
+  .arow.sel { background:var(--bg); box-shadow:var(--sh1), 0 0 0 1px var(--line); }
+  .arow.cond { margin-bottom:4px; }
+  .arow .l1, .arow .l2 { grid-column:2; display:flex; align-items:center; gap:6px; min-width:0; }
+  .arow .st { grid-row:1; grid-column:1; justify-self:center; }
+  .arow .nm { font-weight:550; font-size:13.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:0 1 auto; }
+  .arow.attn .nm { font-weight:700; }
+  .arow .cico { width:14px; height:14px; margin-right:5px; vertical-align:-2px; color:var(--acc); }
+  .arow .pills { display:flex; gap:4px; flex:none; } .arow .pills:empty { display:none; }
+  .arow .pill { margin:0; font-size:10.5px; line-height:15px; padding:0 6px; }
+  .arow time { margin-left:auto; flex:none; font-size:11.5px; color:var(--mut); font-variant-numeric:tabular-nums; }
+  .arow .l2 { font-size:12px; color:var(--mut); margin-top:1px; }
+  .arow .pv { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .arow .pv.tool { font-family:ui-monospace, "SF Mono", Menlo, monospace; font-size:11.5px; color:color-mix(in srgb, var(--acc) 75%, var(--fg)); }
+  .arow .par { font-style:normal; color:var(--fg); opacity:.7; }
+  .arow .ex { display:flex; gap:5px; flex:none; align-items:center; } .arow .ex:empty { display:none; }
+  .arow .ex .ctxg { margin:0; font-size:10.5px; }
+  .arow .tdo { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-variant-numeric:tabular-nums; }
+  .arow .tdo .ic { width:12px; height:12px; vertical-align:0; }
+  .arow .mdl, .arow .tok { font-size:10.5px; color:var(--mut); font-variant-numeric:tabular-nums; white-space:nowrap; } .arow .mdl { max-width:7em; overflow:hidden; text-overflow:ellipsis; }
+
+  /* sub-agents: a caret line under the parent, children indented along a guide line */
+  .kids-t { display:flex; align-items:center; gap:4px; margin:0 0 2px calc(26px + var(--d, 0) * 14px); padding:2px 8px 2px 4px; border:0; background:none; box-shadow:none; min-height:0;
+    font-size:11.5px; color:var(--mut); border-radius:6px; }
+  .kids-t:hover { background:color-mix(in srgb, var(--fg) 5%, transparent); color:var(--fg); } .kids-t:active { transform:none; }
+  .kids { margin-left:calc(17px + var(--d, 0) * 14px); padding-left:6px; border-left:1px solid var(--line); }
+
+  /* status: shape and color (spinner = running, ! = needs you, filled = idle, hollow = stopped) */
+  .st { display:inline-grid; place-items:center; width:14px; height:14px; border-radius:50%; flex:none; box-sizing:border-box; font:800 10px/1 -apple-system, system-ui, sans-serif; color:var(--on-st); }
+  .st.stopped { width:10px; height:10px; border:1.5px solid color-mix(in srgb, var(--mut) 80%, transparent); }
+  .st.idle { width:10px; height:10px; background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 16%, transparent); }
+  .st.running { border:2px solid var(--acc-s); border-top-color:var(--acc); border-right-color:var(--acc); animation:stspin .8s linear infinite; }
+  .st.need { background:var(--err); } .st.need.blocked { background:var(--acc); color:var(--on-acc); } .st.need.warn { background:var(--warn); }
+  @keyframes stspin { to { transform:rotate(360deg); } }
+
+  /* quick switcher */
+  dialog.kswitch { width:min(620px, 94vw); max-height:min(70vh, 560px); padding:0; margin:12vh auto auto; display:flex; flex-direction:column; overflow:hidden; }
+  dialog.kswitch:not([open]) { display:none; }
+  .kswitch .kin { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .kswitch .kin .ic { color:var(--mut); width:18px; height:18px; }
+  .kswitch .kin input { flex:1; min-width:0; border:0; background:none; font-size:16px; padding:4px 0; box-shadow:none !important; }
+  .kswitch .kin kbd, .kswitch .kft kbd { font:500 11px/1 -apple-system, system-ui, sans-serif; border:1px solid var(--line); border-radius:5px; padding:3px 5px; color:var(--mut); background:var(--card); }
+  .kswitch .kres { overflow:auto; padding:6px; flex:1; }
+  .kswitch .ksec { font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--mut); padding:10px 10px 4px; }
+  .kswitch .kit { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:9px; cursor:pointer; min-width:0; }
+  .kswitch .kic { flex:none; width:18px; display:grid; place-items:center; color:var(--mut); }
+  .kswitch .kit .kt { min-width:0; flex:1; display:flex; flex-direction:column; }
+  .kswitch .kit .kt b { font-weight:550; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .kswitch .kit .kt small { color:var(--mut); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .kswitch .kit .kt small mark { background:color-mix(in srgb, #fde68a 70%, transparent); color:inherit; }
+  .kswitch .kit .kr { flex:none; font-size:11.5px; color:var(--mut); }
+  .kswitch .kit[aria-selected=true] { background:var(--acc-s); --mut:var(--mut-t); }
+  .kswitch .kit[aria-selected=true] .kic > .ic { color:var(--acc); }
+  .kswitch .kempty { padding:18px; color:var(--mut); text-align:center; font-size:13.5px; }
+  .kswitch .kft { display:flex; gap:14px; padding:8px 16px; border-top:1px solid var(--line); font-size:11.5px; color:var(--mut); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .st.running { animation:none; border-color:var(--acc); border-left-color:var(--acc-s); border-bottom-color:var(--acc-s); } /* a still half ring */
+    .sgh .car, .kids-t .car { transition:none; }
+  }
+
+  /* plan limits (js/limits.js): /usage per account, under the list */
+  #limits { flex:none; border-top:1px solid var(--line); padding:4px 10px 8px; max-height:40vh; overflow:auto; }
+  #limits[hidden] { display:none; }
+  #limits .limhd { display:flex; align-items:center; gap:2px; }
+  #limits .sgh .n.warn { color:var(--warn); opacity:1; } #limits .sgh .n.high { color:var(--err); opacity:1; }
+  #limr { flex:none; border:0; background:none; box-shadow:none; padding:4px 6px; color:var(--mut); min-height:0; }
+  #limr:hover { color:var(--fg); } #limr.busy .ic { animation:stspin .9s linear infinite; }
+  #limits.shut #limbody, #limits.shut #limat { display:none; }
+  .lacct { padding:3px 6px 2px; } .lacct > b { display:block; font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lrow { display:flex; align-items:center; gap:8px; font-size:12px; margin-top:3px; }
+  .lrow .ll { flex:none; width:74px; color:var(--mut); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lrow .lbar { flex:1; height:5px; border-radius:3px; background:color-mix(in srgb, var(--fg) 9%, transparent); overflow:hidden; }
+  .lrow .lbar i { display:block; height:100%; background:var(--ok); border-radius:3px; }
+  .lrow.warn .lbar i { background:var(--warn); } .lrow.high .lbar i { background:var(--err); }
+  .lrow .lp { flex:none; width:30px; text-align:right; font-variant-numeric:tabular-nums; }
+  .lrow .lr { flex:none; width:46px; font-size:11px; color:var(--mut); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lacct .lerr { display:block; font-size:11.5px; color:var(--err); } .lacct .lnote { display:block; font-size:11.5px; color:var(--mut); }
+  #limat { display:block; padding:4px 6px 0; font-size:11px; color:var(--mut); }
+  @media (prefers-reduced-motion: reduce) { #limr.busy .ic { animation:none; opacity:.5; } }
+
+  /* sidebar blocks from plugins (js/plugins.js host.sidebar.block), e.g. Machines */
+  .pblock { flex:none; border-top:1px solid var(--line); padding:4px 10px 6px; font-size:11.5px; color:var(--mut); }
+  .pblock[hidden] { display:none; }
+  .pblock.shut .pbody { display:none; }
+  .pblock .sgh .n.warn { color:var(--warn); opacity:1; } .pblock .sgh .n.high { color:var(--err); opacity:1; }
+
+  @media (max-width: 700px) {
+    /* bottom tab bar: last in the sidebar's flex column, so the list scrolls above it and never hides behind it */
+    #tools { order:10; flex:none; padding:4px max(6px, env(safe-area-inset-left)) calc(4px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-right)); gap:0;
+      border-top:1px solid var(--line); background:color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter:saturate(1.6) blur(10px); -webkit-backdrop-filter:saturate(1.6) blur(10px); }
+    /* one row that scrolls sideways once the pages outgrow the screen; pan-x keeps the swipe on the bar, contain stops it chaining to the page */
+    #tools { overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; touch-action:pan-x; -webkit-overflow-scrolling:touch;
+      scroll-snap-type:x proximity; scroll-padding-inline:max(6px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-right)); scrollbar-width:none; }
+    #tools::-webkit-scrollbar { display:none; }
+    #tools button { flex:1 0 56px; min-width:56px; scroll-snap-align:start; gap:2px; min-height:50px; padding:4px 0; border-radius:10px; }
+    /* edge fades: sticky pseudo-items pinned to each edge, shown by pages.js (.fl / .fr) while more items lie that way */
+    #tools::before, #tools::after { content:''; position:sticky; z-index:1; flex:none; width:28px; pointer-events:none; opacity:0; transition:opacity .15s; }
+    #tools::before { left:0; margin-right:-28px; background:linear-gradient(to right, var(--bg), transparent); }
+    #tools::after { right:0; margin-left:-28px; background:linear-gradient(to left, var(--bg), transparent); }
+    #tools.fl::before, #tools.fr::after { opacity:1; }
+    #tools .ic { width:22px; height:22px; } #tools button::after { font-size:10.5px; }
+    #tools .badge { top:2px; left:calc(50% + 4px); box-shadow:0 0 0 2px var(--bg); }
+    #tools .badge.dot { top:5px; left:calc(50% + 8px); }
+    #tmenu > button { padding:10px 14px; font-size:16px; }
+    #side h1 #new { min-height:40px; padding:6px 14px 6px 11px; font-size:14px; }
+    #nbar { margin:0 12px 10px; } #bnotif { min-height:44px; font-size:13.5px; } #bnotifx { min-height:44px; min-width:44px; justify-content:center; }
+    #searchbar { padding:0 12px 8px; } #searchbar .fld { min-height:44px; font-size:16px; padding-right:48px; }
+    #kswitch { display:none; }
+    #list { padding:0 6px 12px; }
+    .sgh { min-height:44px; font-size:12px; padding:10px 8px 6px; }
+    .arow { padding:10px 10px; min-height:58px; }
+    .arow .nm { font-size:15px; } .arow .l2 { font-size:13px; }
+    .kids-t { min-height:44px; font-size:12.5px; }
+    dialog.kswitch { margin:calc(10px + env(safe-area-inset-top)) auto auto; max-height:75dvh; }
+    .kswitch .kit { min-height:48px; }
+    .kswitch .kft { display:none; }
+  }

@@ -1,0 +1,26 @@
+#!/bin/sh
+# A stand-in for the claude CLI, for e2e tests that must not make model calls: put this folder first in PATH.
+# It appends its arguments (one per line, then ---) to $FAKE_CLAUDE_LOG, its environment (then ---) to $FAKE_CLAUDE_ENVLOG and every
+# stdin line to $FAKE_CLAUDE_STDINLOG, and answers every stdin line with a finished turn (after N seconds if the line contains fake-sleep-N).
+[ -n "$FAKE_CLAUDE_LOG" ] && { for a in "$@"; do printf '%s\n' "$a"; done; echo ---; } >> "$FAKE_CLAUDE_LOG"
+[ -n "$FAKE_CLAUDE_ENVLOG" ] && { env; echo ---; } >> "$FAKE_CLAUDE_ENVLOG"
+case "$1" in -p) ;; *) exit 1 ;; esac
+# `claude -p /usage` (plan limits): answers after $FAKE_USAGE_SLEEP seconds with the percentage in $FAKE_USAGE_FILE (default 10)
+if [ "$2" = "/usage" ]; then
+  [ -n "$FAKE_USAGE_SLEEP" ] && sleep "$FAKE_USAGE_SLEEP"
+  printf '{"is_error":false,"result":"Current session: %s%% used \302\267 resets Nov 3 at 1:00am (UTC)"}\n' "$(cat "$FAKE_USAGE_FILE" 2>/dev/null || echo 10)"
+  exit 0
+fi
+# FAKE_CLAUDE_NODE=1: read stdin event-driven, the way the real CLI does (see stdin-reader.mjs)
+[ -n "$FAKE_CLAUDE_NODE" ] && exec node "$(dirname "$0")/stdin-reader.mjs"
+while IFS= read -r line; do
+  [ -n "$FAKE_CLAUDE_STDINLOG" ] && printf '%s\n' "$line" >> "$FAKE_CLAUDE_STDINLOG"
+  n=$(printf '%s' "$line" | sed -n 's/.*fake-sleep-\([0-9]*\).*/\1/p'); [ -n "$n" ] && sleep "$n"
+  # fake-peer: other Claude sessions message this one, and it replies (see peer-turn.mjs)
+  case "$line" in *fake-peer*) node "$(dirname "$0")/peer-turn.mjs" "$line"; continue ;; esac
+  # FAKE_CLAUDE_USAGE=1: the result carries token usage and a cost, so the turn is recorded in the usage table
+  if [ -n "$FAKE_CLAUDE_USAGE" ]; then echo '{"type":"result","subtype":"success","is_error":false,"result":"fake turn","num_turns":1,"session_id":"00000000-0000-4000-8000-000000000000","total_cost_usd":0.0123,"usage":{"input_tokens":1200,"output_tokens":340,"cache_read_input_tokens":5000,"cache_creation_input_tokens":800}}'
+  else
+  echo '{"type":"result","subtype":"success","is_error":false,"result":"fake turn","num_turns":1,"session_id":"00000000-0000-4000-8000-000000000000","total_cost_usd":0}'
+  fi
+done

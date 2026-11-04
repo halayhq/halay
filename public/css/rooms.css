@@ -1,0 +1,53 @@
+/* Rooms page (js/rooms.js): list of rooms, one room's chat with members, banner and composer */
+#rmdlg .dlg-body { display:flex; flex-direction:column; }
+#rmlist { display:flex; flex-direction:column; gap:10px; }
+.rmrow { display:flex; flex-direction:column; align-items:stretch; gap:8px; text-align:left; padding:12px 14px; border-radius:14px; background:var(--card); border:1px solid var(--line); box-shadow:none; font:inherit; color:var(--fg); }
+.rmrow:hover { border-color:var(--acc); }
+.rmt { display:flex; align-items:center; gap:8px; justify-content:space-between; } .rmt b { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rmavs { display:flex; align-items:center; gap:4px; }
+.rmlast { color:var(--mut); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rmold { margin-top:8px; } .rmold summary { color:var(--mut); font-size:13px; cursor:pointer; margin-bottom:8px; } .rmold .rmrow { margin-bottom:8px; }
+.st-chip.rm-active { background:rgba(22,163,74,.14); color:var(--ok); } .st-chip.rm-paused { background:rgba(220,38,38,.14); color:var(--err); }
+.st-chip.rm-done, .st-chip.rm-archived { background:var(--ubg); color:var(--mut); }
+
+.av { flex:none; width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:650; }
+
+#rmview { display:flex; flex-direction:column; gap:10px; flex:1; min-height:0; }
+#rmview[hidden], #rmlist[hidden], #rmform[hidden], #rmbanner[hidden] { display:none; }
+#rmmembers { display:flex; flex-wrap:wrap; gap:6px; }
+.rmmem { display:inline-flex; align-items:center; gap:6px; padding:3px 10px 3px 3px; border-radius:999px; background:var(--card); border:1px solid var(--line); color:var(--fg); text-decoration:none; font-size:13px; max-width:100%; }
+.rmmem:hover { border-color:var(--acc); } .rmmem .av { width:22px; height:22px; font-size:11px; } .rmmem .dot { margin:0; flex:none; }
+.rmmem .rmn { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .rmmem small { color:var(--mut); font-size:12px; } .rmmem small.rmblk { color:var(--err); font-weight:600; }
+#rmbanner { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:8px 12px; border-radius:12px; background:var(--card); font-size:13px; color:var(--mut); }
+#rmbanner.rm-paused { background:rgba(220,38,38,.12); color:var(--fg); } #rmbanner.rm-done { background:rgba(22,163,74,.12); color:var(--fg); }
+#rmbanner button { min-height:32px; padding:4px 12px; }
+#rmlog { display:flex; flex-direction:column; gap:12px; flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding-bottom:6px; }
+body.inroom #rmdlg .dlg-body { overflow:hidden; }
+#rmsub { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.rmmsg { display:flex; gap:10px; align-items:flex-start; max-width:100%; }
+.rmc { min-width:0; flex:1; }
+.rmh { display:flex; gap:8px; align-items:baseline; font-size:13px; } .rmh time { color:var(--mut); font-size:12px; }
+.rmwho { font-weight:650; color:var(--fg); text-decoration:none; } .rmwho:hover { color:var(--acc); text-decoration:underline; }
+.rmbody { overflow-wrap:anywhere; line-height:1.5; font-size:14.5px; } .rmbody > :first-child { margin-top:2px; } .rmbody > :last-child { margin-bottom:0; }
+.rmbody pre { overflow:auto; max-width:100%; }
+.rmmsg.me .rmbody { background:var(--ubg); padding:6px 10px; border-radius:12px; display:inline-block; max-width:100%; }
+.rmen { color:var(--acc); font-weight:600; } .rmen.u { color:var(--ok); }
+.rmsys { align-self:center; text-align:center; font-size:12px; color:var(--mut); padding:2px 10px; max-width:90%; overflow-wrap:anywhere; }
+.rmsys.done { color:var(--ok); font-weight:600; }
+
+#rmcomp { position:relative; flex:none; display:flex; gap:8px; align-items:flex-end; padding:10px max(20px, calc((100% - 920px) / 2)) calc(10px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); background:var(--side); }
+#rmcomp[hidden], #rmac[hidden] { display:none; }
+#rmtxt { flex:1; min-width:0; resize:none; max-height:140px; line-height:1.4; font-size:16px; }
+#rmsend { flex:none; width:44px; height:44px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; }
+#rmac { position:absolute; left:max(20px, calc((100% - 920px) / 2)); right:calc(max(20px, calc((100% - 920px) / 2)) + 52px); bottom:calc(100% - 4px); background:var(--bg); border:1px solid var(--line); border-radius:12px; box-shadow:var(--sh2); overflow:hidden; z-index:5; }
+.rmopt { display:flex; gap:8px; align-items:center; padding:8px 12px; cursor:pointer; } .rmopt .av { width:22px; height:22px; font-size:11px; } .rmopt small { color:var(--mut); }
+.rmopt.on, .rmopt:hover { background:var(--acc-s); --mut:var(--mut-t); }
+
+.rmpick { display:flex; flex-direction:column; gap:2px; max-height:260px; overflow:auto; border:1px solid var(--line); border-radius:10px; padding:4px; background:var(--bg); }
+.rmpick .chk { display:flex; align-items:center; gap:8px; padding:6px 8px; margin:0; } .rmpick .av { width:22px; height:22px; font-size:11px; } .rmpick small { margin-left:auto; }
+
+@media (max-width: 700px) {
+  #rmcomp { padding:8px 12px calc(8px + env(safe-area-inset-bottom)); }
+  #rmac { left:12px; right:64px; }
+}
+#rmfoot[hidden] { display:none; }

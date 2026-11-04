@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>halay</title>
+<!-- Branding: the product name and version come from package.json (product.js on the server; js/brand.js fills them in). The docs/source links below feed the welcome card and Settings → About -->
+<meta name="application-name" content="">
+<link rel="help" id="docslink" href="https://github.com/halayhq/halay#readme">
+<link rel="source" id="srclink" href="https://github.com/halayhq/halay">
+<link rel="manifest" id="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0b0b0e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="halay">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script src="/js/colors.js"></script>
+<script src="/js/themes.js"></script>
+<script src="/js/theme.js"></script>
+<script>
+// Start the plugin UIs (the Machines block) right away, in parallel with the ~40 scripts below: on a phone every round trip
+// counts. plugins.js and the plugin UIs pick these promises up instead of asking again.
+window.__early = (() => {
+  const get = (u) => fetch(u, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const e = { ui: get('/api/plugins/ui'), machines: get('/api/machines'), limits: get('/api/limits') }; // /api/machines answers from the server's cache
+  e.ui.then((l) => (l || []).forEach((p) => import(p.ui + '?v=' + encodeURIComponent(p.rev ?? p.version)).catch(() => {})));
+  return e;
+})();
+</script>
+<script src="/js/brand.js" defer></script>
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/extras.css">
+<link rel="stylesheet" href="/css/features.css">
+<link rel="stylesheet" href="/css/viewer.css">
+<link rel="stylesheet" href="/css/context.css">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/ui-side.css">
+<link rel="stylesheet" href="/css/ui-chat.css">
+<link rel="stylesheet" href="/css/ui-dialogs.css">
+<link rel="stylesheet" href="/css/ui-pages.css">
+<link rel="stylesheet" href="/css/terminal.css">
+<link rel="stylesheet" href="/css/rooms.css">
+<link rel="stylesheet" href="/css/bots.css">
+<link rel="stylesheet" href="/css/browser.css">
+<link rel="stylesheet" href="/css/editor.css">
+<link rel="stylesheet" href="/css/polish.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<aside id="side" aria-label="Agents and navigation">
+  <h1>Agents <span><button class="primary" id="new" title="New agent" aria-label="New agent"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-plus"/></svg><span>New</span></button></span></h1>
+  <nav id="tools" aria-label="Pages">
+    <button id="bappr" title="Approvals" aria-label="Approvals" data-label="Approvals"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-inbox"/></svg><span class="badge" id="nappr" hidden></span></button>
+    <button id="btasks" title="Tasks (g t)" aria-label="Tasks" data-label="Tasks"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-list-todo"/></svg><span class="badge mut" id="ntasks" hidden></span></button>
+    <button id="brooms" title="Rooms: group chats between agents" aria-label="Rooms" data-label="Rooms"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-message-square"/></svg><span class="badge mut" id="nrooms" hidden></span></button>
+    <button id="bbots" title="Bots: permanent agents with a name, a role and a memory" aria-label="Bots" data-label="Bots"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-bot"/></svg><span class="badge mut" id="nbots" hidden></span></button>
+    <button id="bset" title="Settings: appearance, notifications, usage warnings" aria-label="Settings" data-label="Settings"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-settings"/></svg></button>
+    <button id="bmore" type="button" title="More: history, usage, terminal, browser, theme" aria-label="More pages" data-label="More" aria-haspopup="menu" aria-expanded="false" aria-controls="tmenu"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-ellipsis"/></svg><span class="badge mut dot" id="nmore" hidden></span></button>
+  </nav>
+  <!-- the sidebar's More menu (js/pages.js): the rarer pages, as icon + label rows; a top-layer popover so the phone tab bar's overflow does not clip it -->
+  <div id="tmenu" class="menu" role="menu" aria-label="More pages" popover>
+    <button id="hist" role="menuitem" title="History (g h)" aria-label="History" data-label="History"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-history"/></svg><span>History</span></button>
+    <button id="busage" role="menuitem" title="Usage" aria-label="Usage" data-label="Usage"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-chart-column"/></svg><span>Usage</span></button>
+    <button id="bterm" role="menuitem" title="Terminal" aria-label="Terminal" data-label="Terminal" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-terminal"/></svg><span>Terminal</span><span class="badge mut" id="nterm" hidden></span></button>
+    <button id="bbrow" role="menuitem" title="Browser: watch and take over the agents' browser" aria-label="Browser" data-label="Browser" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-globe"/></svg><span>Browser</span><span class="badge mut" id="nbrow" hidden></span></button>
+    <hr>
+    <button id="btheme" role="menuitem" title="Theme" aria-label="Theme" data-label="Theme"></button>
+  </div>
+  <div id="nbar"><button id="bnotif" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-bell"/></svg><span>Enable notifications</span></button><button id="bnotifx" type="button" title="Dismiss" aria-label="Dismiss notifications banner"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></div>
+  <div id="searchbar"><input class="fld" id="q" type="search" placeholder="Search all history…" aria-label="Search all history" autocomplete="off" autocapitalize="off" enterkeyhint="search"><button id="qx" type="button" title="Clear search" aria-label="Clear search" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button><button id="kswitch" type="button" title="Quick switcher (⌘K / Ctrl+K)" aria-label="Open quick switcher"><kbd>⌘K</kbd></button></div>
+  <nav id="list" aria-label="Agents"></nav>
+  <div id="sres" hidden></div>
+  <section id="firstrun" aria-labelledby="frhead">
+    <h2 id="frhead" class="sr-only">Getting started</h2>
+    <p>Run coding agents side by side (Claude Code, OpenCode, Cursor, Gemini, Antigravity), each in a folder you pick. Start one here, or tap <b>Swarm chat</b> above to describe a bigger job and let it start agents for you.</p>
+    <ol class="wsteps">
+      <li><a class="wstep primary" href="#/new"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-plus"/></svg><span><b>Start an agent</b><small>Pick a folder and say what to do</small></span></a></li>
+      <li><a class="wstep" href="#" target="_blank" rel="noopener" data-brand-link="docslink"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-book-open"/></svg><span><b>Read the guide</b><small>Needs the Claude Code CLI, signed in, on the server</small></span></a></li>
+    </ol>
+  </section>
+  <section id="limits" hidden aria-label="Plan limits">
+    <div class="limhd"><button type="button" id="limh" class="sgh" aria-expanded="true"><svg class="ic car" aria-hidden="true"><use href="/icons.svg#i-chevron-right"/></svg><span>Plan limits</span><span class="n" id="limtop"></span></button><button type="button" id="limr" title="Check again (runs /usage for each account)" aria-label="Check plan limits again"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-refresh-cw"/></svg></button></div>
+    <div id="limbody"></div>
+    <small id="limat"></small>
+  </section>
+  <div id="slive" class="sr-only" aria-live="polite"></div>
+</aside>
+<section id="page" hidden aria-label="Page"></section>
+<main id="main" tabindex="-1">
+  <div id="empty">Loading…</div>
+</main>
+
+<dialog id="dlg" class="dlgx" aria-labelledby="nhead">
+  <header class="dlg-head"><button type="button" class="dlg-icb" id="nback" aria-label="Back to choosing a folder" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-arrow-left"/></svg></button><div class="dlg-t"><h2 id="nhead">New agent</h2><small id="nsub">Where should it work?</small></div><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-body">
+  <div id="nstep1">
+    <div class="sfield"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-search"/></svg><input class="fld" id="npath" placeholder="Filter recent folders, or type a path" aria-label="Folder: filter recent folders or type a path" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go"></div>
+    <div class="nchoices"><button type="button" id="nbrowse" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-folder-open"/></svg><span>Browse…</span></button><button type="button" id="noneoff" title="A fresh empty scratch folder, removed with the agent"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-sparkles"/></svg><span>One-off scratch folder</span></button></div>
+    <input type="checkbox" id="oochk" hidden>
+    <div id="picker" hidden>
+      <div id="crumb"></div>
+      <div id="dirs" class="dlist"></div>
+    </div>
+    <div class="dlg-sec" id="nrech">Recent folders</div>
+    <div id="nrecent" class="dlist"></div>
+  </div>
+  <div id="nstep2" hidden>
+    <button type="button" class="nwhere" id="nchange" title="Choose another folder"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-folder"/></svg><span class="nw"><b id="nwname"></b><small id="nwpath"></small></span><span class="nwc">Change</span></button>
+    <div id="nfirst">
+      <textarea class="fld" id="nprompt" rows="5" placeholder="What should the agent do? (optional: leave empty to start idle)" aria-label="First message"></textarea>
+      <div class="nattrow"><button type="button" id="nattach" title="Attach files"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-paperclip"/></svg><span>Attach files</span></button><input type="file" id="nfile" multiple hidden></div>
+      <div class="atray" id="ntray" hidden></div>
+    </div>
+    <details id="nopts" class="nopts">
+      <summary><span>Options</span><small id="noptsum"></small><svg class="ic chev" aria-hidden="true"><use href="/icons.svg#i-chevron-down"/></svg></summary>
+      <div class="ngrid">
+        <label class="fl" id="nbackrow" hidden>Agent CLI <select class="fld" id="nbackend"></select></label>
+        <label class="fl">Account <select class="fld" id="acct"></select></label>
+        <label class="fl">Mode
+          <select class="fld" id="mode">
+            <option value="auto">auto (fewer prompts, like the CLI's auto mode)</option>
+            <option value="manual">manual (asks for everything)</option>
+            <option value="acceptEdits">acceptEdits (edits auto-approved)</option>
+            <option value="plan">plan (read-only)</option>
+            <option value="bypassPermissions">bypassPermissions (dangerous)</option>
+            <option value="cli">your settings only (asks for everything)</option>
+          </select>
+        </label>
+        <label class="fl">Model <select class="fld" id="nmodel"></select></label>
+        <label class="fl" id="neffrow">Effort <select class="fld" id="neffort"></select></label>
+      </div>
+      <label class="chk" id="leanrow"><input type="checkbox" id="leanchk"> <span>Lean <span class="mutl">(only the swarm MCP server: none of your MCP servers or claude.ai connectors, so a smaller context)</span></span></label>
+      <label class="chk" id="browrow" hidden><input type="checkbox" id="browchk"> <span>Browser <span class="mutl">(a real browser with saved logins that you can watch and take over; adds browser tools to the agent's context)</span></span></label>
+    </details>
+    <div id="wtrow" hidden>
+      <label class="chk"><input type="checkbox" id="wtchk"> <span>Start in a new git worktree <span class="mutl" id="wtinfo"></span></span></label>
+      <div id="wtopt" hidden><label class="mutl" for="wtbranch">Branch name (optional)</label><input class="fld" id="wtbranch" autocapitalize="off" autocomplete="off" placeholder="swarm/&lt;agent id&gt;"><div class="mutl" style="margin-top:4px">Created under tmp/&lt;agent id&gt;/ off the current branch. Uncommitted changes in the folder are not copied. Review and merge from the agent's Git view.</div></div>
+    </div>
+    <div id="nsessw" hidden>
+      <div class="dlg-sec" id="sessHead">Continue a session?</div>
+      <div id="sess" class="dlist" role="listbox" aria-labelledby="sessHead"></div>
+    </div>
+  </div>
+  </div>
+  <footer class="dlg-foot"><span class="sp"></span><button type="button" id="cancel">Cancel</button><button type="button" class="primary" id="nnext">Continue</button><button type="button" class="primary" id="start" hidden>Start agent</button></footer>
+</dialog>
+
+<dialog id="hdlg" class="dlgx" aria-labelledby="hhead">
+  <header class="dlg-head"><div class="dlg-t"><h2 id="hhead">History</h2><small>Previous sessions by folder. Pick one to resume it.</small></div><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-tools"><div class="sfield"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-search"/></svg><input class="fld" id="hq" type="search" placeholder="Filter by prompt or folder" aria-label="Filter sessions" autocomplete="off" autocapitalize="off"></div><label id="hshowl" hidden><input type="checkbox" id="hshow"> <span></span></label></div>
+  <div class="dlg-body"><div id="hlist"></div></div>
+  <footer class="dlg-foot"><div class="hresume" role="group" aria-label="Resume as"><span class="flab">Resume as</span><select id="hacct" aria-label="Resume with account"></select><select id="hmode" aria-label="Resume in permission mode"></select></div><span class="sp"></span><button type="button" id="hclose">Close</button></footer>
+</dialog>
+
+<dialog id="pdlg" class="dlgx" aria-labelledby="phead">
+  <header class="dlg-head"><div class="dlg-t"><h2 id="phead">Swarm chat system prompt</h2><small>Added to the conductor's system prompt. Takes effect after <i>New context</i> (a resumed conversation keeps the prompt it started with).</small></div><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-body"><textarea id="ptext" aria-label="System prompt" spellcheck="false"></textarea></div>
+  <footer class="dlg-foot"><button type="button" id="pdefault"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-rotate-ccw"/></svg><span>Reset to default</span></button><span class="sp"></span><button type="button" id="pclose">Close</button><button type="button" class="primary" id="psave">Save</button></footer>
+</dialog>
+
+<dialog id="adlg" class="dlgx" aria-labelledby="ahead">
+  <header class="dlg-head"><div class="dlg-t"><h2 id="ahead">Approvals</h2><small>Waiting across all agents</small></div><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-body"><div id="alist" aria-live="polite"></div></div>
+  <footer class="dlg-foot"><span class="sp"></span><button type="button" id="aclose">Close</button></footer>
+</dialog>
+
+<dialog id="rmdlg" class="dlgx" aria-labelledby="rmhead">
+  <header class="dlg-head"><button type="button" class="dlg-icb" id="rmback" aria-label="Back to rooms" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-arrow-left"/></svg></button><div class="dlg-t"><h2 id="rmhead">Rooms</h2><small id="rmsub">Group chats where agents hand work to each other</small></div><button type="button" class="dlg-icb" id="rmedit" aria-label="Room settings" title="Room settings" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-settings"/></svg></button><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-body" id="rmbody"><div id="rmlist"></div><div id="rmview" hidden><div id="rmmembers"></div><div id="rmbanner" hidden></div><div id="rmlog" aria-live="polite"></div></div><form id="rmform" class="dform" onsubmit="return false" hidden></form></div>
+  <form id="rmcomp" hidden onsubmit="return false"><div id="rmac" hidden role="listbox"></div><textarea class="fld" id="rmtxt" rows="1" placeholder="Message the room… @ to mention" aria-label="Message" enterkeyhint="send"></textarea><button type="submit" class="primary" id="rmsend" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-send"/></svg></button></form>
+  <footer class="dlg-foot" id="rmfoot"><span class="sp"></span><button type="button" class="primary" id="rmnew"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-plus"/></svg><span>New room</span></button></footer>
+</dialog>
+
+<dialog id="botdlg" class="dlgx" aria-labelledby="bothead">
+  <header class="dlg-head"><button type="button" class="dlg-icb" id="botback" aria-label="Back to bots" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-arrow-left"/></svg></button><div class="dlg-t"><h2 id="bothead">Bots</h2><small id="botsub">Permanent agents with a name, a role and a memory</small></div><button type="button" class="dlg-icb" id="botedit" aria-label="Edit bot" title="Edit bot" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-pencil"/></svg></button><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-body" id="botbody"><div id="botlist"></div><div id="botview" hidden></div><form id="botform" class="dform" onsubmit="return false" hidden></form></div>
+  <footer class="dlg-foot" id="botfoot"><span class="sp"></span><button type="button" class="primary" id="botnew"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-plus"/></svg><span>New bot</span></button></footer>
+</dialog>
+
+<dialog id="tdlg" class="dlgx" aria-labelledby="thead">
+  <header class="dlg-head"><div class="dlg-t"><h2 id="thead">Tasks</h2><small>Backlog and recurring tasks for the whole swarm</small></div><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-tools"><div class="ttabs seg" role="tablist" aria-label="Tasks view"><button type="button" role="tab" id="ttabb" class="on"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-list-todo"/></svg><span>Backlog</span></button><button type="button" role="tab" id="ttabs"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-calendar-clock"/></svg><span>Schedules</span><span class="badge mut" id="nsched" hidden></span></button></div></div>
+  <div class="dlg-body">
+  <div id="tpaneb">
+  <div id="tlist"></div>
+  <form id="tform" class="dform" onsubmit="return false" hidden>
+    <b id="tformh">New task</b>
+    <input class="fld" id="ttitle" placeholder="Title" aria-label="Title" autocomplete="off">
+    <textarea class="fld" id="tprompt" placeholder="Prompt for the agent (optional, defaults to the title)" aria-label="Prompt"></textarea>
+    <input class="fld" id="tcwd" list="cwds" placeholder="Folder (optional), e.g. ~/projects/my-app" aria-label="Folder" autocomplete="off" autocapitalize="off">
+    <datalist id="cwds"></datalist>
+    <select class="fld" id="tacct" aria-label="Account"></select>
+    <div class="sgrid"><label class="fl">Model<select class="fld" id="tmodel"></select></label><label class="fl">Effort<select class="fld" id="teffort"></select></label></div>
+    <b class="dsub">Depends on <span class="mutl">(must be done first)</span></b>
+    <div id="tdeps"></div>
+    <label class="chk"><input type="checkbox" id="tauto"> <span>Start automatically when its dependencies finish</span></label>
+    <div class="mutl">Put <code>{{result:ID}}</code> in the prompt to include a finished task's result (it also adds that task as a dependency).</div>
+    <div class="row"><span class="sp"></span><button type="button" id="tcancel">Cancel</button><button type="button" class="primary" id="tsave">Add task</button></div>
+  </form>
+  </div>
+  <div id="tpanes" hidden>
+  <div id="slist"></div>
+  <form id="sform" class="dform" onsubmit="return false" hidden>
+    <b id="sformh">New schedule</b>
+    <input class="fld" id="sftitle" placeholder="Title" aria-label="Title" autocomplete="off">
+    <textarea class="fld" id="sfprompt" placeholder="Prompt for each run (optional, defaults to the title)" aria-label="Prompt"></textarea>
+    <div class="mutl">Each run starts a new agent. <code>{{last_result}}</code> and <code>{{last_run_at}}</code> are replaced with the previous run's result and time. With "Notify: only on ALERT", ask the agent to write <code>ALERT:</code> when something needs you.</div>
+    <label class="chk"><input type="checkbox" id="sfoo"> <span>One-off folder <span class="mutl">(a fresh empty scratch folder for every run)</span></span></label>
+    <input class="fld" id="sfcwd" list="cwds" placeholder="Folder, e.g. ~/projects/my-app" aria-label="Folder" autocomplete="off" autocapitalize="off">
+    <div class="sgrid">
+      <label class="fl">Account<select class="fld" id="sfacct"></select></label>
+      <label class="fl">Mode<select class="fld" id="sfmode"><option value="auto">auto</option><option value="acceptEdits">acceptEdits</option><option value="plan">plan (read-only)</option><option value="manual">manual (asks for everything)</option><option value="bypassPermissions">bypassPermissions (dangerous)</option><option value="cli">your settings only</option></select></label>
+      <label class="fl">Model<select class="fld" id="sfmodel"></select></label>
+      <label class="fl">Effort<select class="fld" id="sfeffort"></select></label>
+    </div>
+    <div class="mutl">Scheduled jobs are often routine: a cheaper model (sonnet, haiku) and low effort save usage.</div>
+    <label class="fl">When (cron: minute hour day month weekday)<input class="fld" id="sfcron" placeholder="0 9 * * 1-5" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <div class="spresets"><button type="button" data-c="0 * * * *">Hourly</button><button type="button" data-c="0 9 * * *">Daily 09:00</button><button type="button" data-c="0 9 * * 1-5">Weekdays 09:00</button><button type="button" data-c="0 9 * * 1">Mondays 09:00</button></div>
+    <label class="fl">Time zone<input class="fld" id="sftz" list="tzs" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <datalist id="tzs"></datalist>
+    <div class="mutl" id="sfprev"></div>
+    <div class="sgrid">
+      <label class="fl">If the last run is still going<select class="fld" id="sfover"><option value="skip">skip this run</option><option value="queue">run when it ends</option></select></label>
+      <label class="fl">Notify<select class="fld" id="sfnotify"><option value="always">after every run</option><option value="failure">only on failure</option><option value="alert">only on ALERT: in the result</option></select></label>
+      <label class="fl">Keep the last N run agents<input class="fld" id="sfkeep" type="number" min="0" max="50" inputmode="numeric"></label>
+    </div>
+    <label class="chk"><input type="checkbox" id="sfen"> <span>Enabled</span></label>
+    <div class="row"><span class="sp"></span><button type="button" id="sfcancel">Cancel</button><button type="button" class="primary" id="sfsave">Add schedule</button></div>
+  </form>
+  </div>
+  </div>
+  <footer class="dlg-foot"><span class="sp"></span><button type="button" id="tclose">Close</button><button type="button" class="primary" id="tnew"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-plus"/></svg><span>New task</span></button><button type="button" class="primary" id="snew" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-plus"/></svg><span>New schedule</span></button></footer>
+</dialog>
+
+<dialog id="sdlg" class="dlgx" aria-labelledby="shead">
+  <header class="dlg-head"><div class="dlg-t"><h2 id="shead">Settings</h2><small>Stored on this server, except Appearance and device notifications</small></div><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-body">
+  <nav class="srail" aria-label="Settings sections">
+    <a href="#" data-sec="sappear"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-sun"/></svg><span>Appearance</span></a>
+    <a href="#" data-sec="snotif"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-bell"/></svg><span>Notifications</span></a>
+    <a href="#" data-sec="saccts"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-shield-check"/></svg><span>Accounts</span></a>
+    <a href="#" data-sec="sagdef"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-sparkles"/></svg><span>Agent defaults</span></a>
+    <a href="#" data-sec="susage"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-gauge"/></svg><span>Usage warnings</span></a>
+    <a href="#" data-sec="swatch"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-hourglass"/></svg><span>Watchdog</span></a>
+    <a href="#" data-sec="sctx"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-layers"/></svg><span>Context</span></a>
+    <a href="#" data-sec="sbrowser"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-globe"/></svg><span>Browser</span></a>
+    <a href="#" data-sec="speers"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-cloud"/></svg><span>Peers</span></a>
+    <a href="#" data-sec="ssecurity"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-shield-check"/></svg><span>Security</span></a>
+    <a href="#" data-sec="splugins"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-puzzle"/></svg><span>Plugins</span></a>
+    <a href="#" data-sec="sserver"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-terminal"/></svg><span>Server</span></a>
+    <a href="#" data-sec="sabout"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-circle-help"/></svg><span>About and help</span></a>
+  </nav>
+  <div class="ssecs">
+  <section id="sappear" class="ssec">
+    <h3>Appearance</h3>
+    <h4 id="modehead">Mode</h4>
+    <div class="seg" role="group" aria-labelledby="modehead"><button type="button" data-theme-pick="system">System</button><button type="button" data-theme-pick="light">Light</button><button type="button" data-theme-pick="dark">Dark</button></div>
+    <h4 id="cthead">Colour theme</h4>
+    <div id="cthemes" role="radiogroup" aria-labelledby="cthead"></div>
+    <div id="ccustom" hidden>
+      <div class="ccrow">
+        <label class="fl">Accent<span class="ccpick"><input type="color" id="cpick" aria-label="Accent colour picker"><input class="fld" id="chex" maxlength="7" autocapitalize="off" autocomplete="off" spellcheck="false" aria-describedby="chint" placeholder="#3366cc"></span></label>
+        <label class="fl">Surfaces from<select class="fld" id="cbase"></select></label>
+      </div>
+      <div class="mutl" id="chint" aria-live="polite"></div>
+    </div>
+    <div class="cprev" aria-label="Preview" role="group"><button type="button" class="primary" tabindex="-1">Button</button><a href="#" tabindex="-1" onclick="return false">A link</a><span class="cprev-sel">Selected row</span><span class="cprev-focus">Focus ring</span></div>
+    <div class="row"><button type="button" id="creset">Reset to default</button></div>
+    <div class="mutl">Saved in this browser right away.</div>
+  </section>
+  <section id="snotif" class="ssec">
+    <h3>Notifications</h3>
+    <h4>On this device</h4>
+    <div class="mutl" id="pnote"></div>
+    <div class="row"><button type="button" class="primary" id="pbtn">Enable notifications</button><button type="button" id="ptest" hidden>Send test push</button></div>
+    <div class="mutl" id="pstatus"></div>
+    <div class="mutl">In-page alerts (banner, list badge, tab title) always work, even over plain http.</div>
+    <h4>Notify me when</h4>
+    <label class="chk"><input type="checkbox" id="ndone"> Agent finished a turn</label>
+    <label class="chk"><input type="checkbox" id="nerror"> Agent hit an error</label>
+    <label class="chk"><input type="checkbox" id="nblocked"> Agent needs an approval</label>
+    <label class="chk"><input type="checkbox" id="nusage"> An account passes a usage threshold</label>
+    <label class="chk"><input type="checkbox" id="nstuck"> An agent looks stuck (watchdog)</label>
+    <label class="chk"><input type="checkbox" id="ncontext"> An agent's context passes the high threshold (needs the box under Context too)</label>
+    <label class="chk"><input type="checkbox" id="ndetails"> Include details (tool, command, result text) in pushes</label>
+    <div class="fl"><label for="nurl">HTTPS address of this app (for links in notifications and as the Web Push sender id)</label><input class="fld" id="nurl" autocapitalize="off" autocomplete="off"></div>
+    <div class="mutl">More places to get notified (ntfy, webhooks for Slack, Discord…) are plugins: Settings → Plugins.</div>
+  </section>
+  <section id="saccts" class="ssec">
+    <h3>Accounts</h3>
+    <div id="acctlist"></div>
+    <div class="row"><button type="button" id="arecheck">Re-check</button></div>
+    <details id="aadd" class="nopts">
+      <summary><span>Add an account</span><small>its own login, no shell alias needed</small><svg class="ic chev" aria-hidden="true"><use href="/icons.svg#i-chevron-down"/></svg></summary>
+      <div style="padding:0 12px 12px">
+        <div class="sgrid">
+          <label class="fl">CLI<select class="fld" id="aaback"></select></label>
+          <label class="fl">Name<input class="fld" id="aaname" placeholder="e.g. claude-work" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <label class="fl">Folder <span class="mutl">(optional: an existing config folder to use, else a new one)</span><input class="fld" id="aadir" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+        <label class="chk" id="aasharel"><input type="checkbox" id="aashare" checked> <span>Share session history and memory with the main Claude account</span></label>
+        <div class="row"><button type="button" class="primary" id="aago">Add and log in</button></div>
+        <div class="mutl" id="aanote" aria-live="polite"></div>
+      </div>
+    </details>
+    <div class="mutl" id="astatus" aria-live="polite">Login state comes from each CLI (Claude: <code>claude auth status</code>, no model call), checked at startup and every 30 minutes. Accounts come from the CLIs themselves, from accounts added here, and from zsh aliases like <code>claude-work='CLAUDE_CONFIG_DIR=… claude'</code>.</div>
+  </section>
+  <section id="sagdef" class="ssec">
+    <h3>Agent defaults</h3>
+    <div class="mutl">What new agents get when nothing else says: the new-agent dialog starts with these, and tasks and schedules use them. Each CLI has its own: the first block is Claude Code, one more appears for each other CLI that is installed (their modes, models and effort differ). An agent started by another agent (or by the swarm chat) inherits that agent's permission mode, and its model and effort when those are set, and can never be more permissive than it. Bots keep their own mode (manual by default) but use the model and effort here unless they set one. A cheaper model or lower effort saves usage; pick a stronger one per agent when the work needs it.</div>
+    <h4 class="mutl" id="adclaude">Claude Code</h4>
+    <div class="sgrid">
+      <label class="fl">Permission mode<select class="fld" id="admode"><option value="auto">auto (fewer prompts)</option><option value="acceptEdits">acceptEdits (edits auto-approved)</option><option value="plan">plan (read-only)</option><option value="manual">manual (asks for everything)</option><option value="bypassPermissions">bypassPermissions (dangerous)</option><option value="cli">your settings only</option></select></label>
+      <label class="fl">Model<select class="fld" id="admodel"></select></label>
+      <label class="fl">Effort<select class="fld" id="adeffort"></select></label>
+    </div>
+    <label class="chk"><input type="checkbox" id="adbuiltin"> <span>Built-in subagents <span class="mutl">(off: agents delegate only through swarm agents, which you can see, message and continue. Claude, OpenCode and Gemini get their own subagent tool turned off; Cursor can't turn it off and is only told. Applies to every agent from its next start)</span></span></label>
+    <div id="adother"></div>
+    <div class="mutl">Model and effort "default" pass nothing, so the CLI uses your own setting. Applies to agents started after saving; change a running agent's model in its chat header menu (⋯).</div>
+  </section>
+  <section id="susage" class="ssec">
+    <h3>Usage warnings</h3>
+    <div class="mutl">Warn once per day when an account's usage today reaches a threshold. Leave empty or 0 for no warning. Tokens are input + output (cache excluded). Cost is Claude Code's own estimate, and is missing for turns where it reports none.</div>
+    <div id="ualerts"></div>
+  </section>
+  <section id="swatch" class="ssec">
+    <h3>Watchdog</h3>
+    <label class="chk"><input type="checkbox" id="wden"> Flag agents that look stuck (never interrupts by itself)</label>
+    <div class="sgrid" id="wdrow"><label class="fl">Minutes without any activity<input class="fld" id="wdidle" type="number" min="1" max="1440" inputmode="numeric"></label><label class="fl">… while a tool call runs<input class="fld" id="wdtool" type="number" min="1" max="1440" inputmode="numeric"></label><label class="fl">Minutes with no response to a message<input class="fld" id="wdstart" type="number" min="1" max="1440" inputmode="numeric"></label><label class="fl">Same tool call repeated (times in a row)<input class="fld" id="wdrep" type="number" min="2" max="100" inputmode="numeric"></label></div>
+  </section>
+  <section id="sctx" class="ssec">
+    <h3>Context</h3>
+    <div class="mutl">An agent's whole context is re-sent on every turn, so long sessions get slow and costly. The list and chat header show each agent's current context size.</div>
+    <div class="sgrid"><label class="fl">Warn at (tokens, amber)<input class="fld" id="cwarn" type="number" min="1000" step="1000" inputmode="numeric"></label><label class="fl">High at (tokens, red)<input class="fld" id="chigh" type="number" min="1000" step="1000" inputmode="numeric"></label></div>
+    <label class="chk"><input type="checkbox" id="cnotify"> Notify once when an agent's context passes the high threshold</label>
+    <h4>Fresh context with handoff</h4>
+    <label class="chk"><input type="checkbox" id="crecycle"> Automatically give idle agents a fresh context with handoff</label>
+    <div class="sgrid"><label class="fl">…when over (tokens)<input class="fld" id="crtok" type="number" min="1000" step="1000" inputmode="numeric"></label><label class="fl">…and idle for (hours)<input class="fld" id="crhrs" type="number" min="0.1" step="0.5" inputmode="decimal"></label></div>
+    <label class="chk"><input type="checkbox" id="ccond"> Same for the swarm chat (conductor)</label>
+    <div class="sgrid"><label class="fl">…when over (tokens)<input class="fld" id="cctok" type="number" min="1000" step="1000" inputmode="numeric"></label><label class="fl">…and idle for (hours)<input class="fld" id="cchrs" type="number" min="0.1" step="0.5" inputmode="decimal"></label></div>
+    <div class="mutl">Never touches running agents, agents waiting for an approval, or stopped agents (except the conductor). A worktree with uncommitted changes is named in the note.</div>
+    <h4>Compaction and MCP</h4>
+    <label class="fl">Auto-compact window (tokens, 100000–1000000; empty = Claude Code's default)<input class="fld" id="ccompact" type="number" min="100000" max="1000000" step="10000" inputmode="numeric" placeholder="default"></label>
+    <div class="mutl">Passed to agents as CLAUDE_CODE_AUTO_COMPACT_WINDOW; Claude Code compacts a little before the context reaches it (about 88k with 100000). Applies when an agent's process next starts.</div>
+    <label class="chk"><input type="checkbox" id="clean"> Lean by default: new agents load only the swarm MCP server (no user MCP servers or claude.ai connectors)</label>
+  </section>
+  <section id="sbrowser" class="ssec">
+    <h3>Browser <span class="mutl">(for agents)</span></h3>
+    <div class="mutl" id="bsinfo"></div>
+    <label class="chk"><input type="checkbox" id="bsdef"> Give new agents a browser by default</label>
+    <div class="sgrid"><label class="fl">Default profile<input class="fld" id="bsprof" autocapitalize="off" autocomplete="off" placeholder="default"></label><label class="fl">Chromium / Chrome path (empty = find one)<input class="fld" id="bspath" autocapitalize="off" autocomplete="off" placeholder="auto"></label></div>
+    <label class="chk"><input type="checkbox" id="bshead"> Show the browser window on the server (headed). Off = headless; you watch it in the Browser panel.</label>
+    <h4>Profiles</h4>
+    <div id="bslist"></div>
+    <div class="mutl">A profile holds the cookies and logins of every site opened in it. Treat the folder like a password manager: anyone who can read it can act as you on those sites. It is never served by the file viewer. Applies to agents started after saving; the headed setting applies when a profile's browser next starts.</div>
+  </section>
+  <section id="speers" class="ssec">
+    <h3>Peers <span class="mutl">(other swarms)</span></h3>
+    <div class="mutl">Other swarm servers (for example on another computer in the same private network) that the swarm chat can see and drive: it can list, start and message their agents and use their task backlog. What a peer starts or adds here is marked with its name. A peer's token is its access token (its <code>.token</code> file); it stays on this server and is never shown again. See docs/peers.md.</div>
+    <div class="sgrid"><label class="fl">This server's name (what peers see)<input class="fld" id="prself" autocapitalize="off" autocomplete="off"></label></div>
+    <div id="prlist"></div>
+    <h4>Add or update a peer</h4>
+    <div class="sgrid"><label class="fl">Name<input class="fld" id="prname" autocapitalize="off" autocomplete="off" placeholder="laptop"></label><label class="fl">Address<input class="fld" id="prurl" autocapitalize="off" autocomplete="off" placeholder="https://laptop.example.ts.net"></label></div>
+    <div class="fl"><label for="prtok">Its access token (empty = keep the saved one)</label><input class="fld" id="prtok" type="password" autocomplete="off"></div>
+    <div class="row"><button type="button" id="pradd">Save peer</button><button type="button" id="prcheck">Check connections</button></div>
+    <div class="mutl" id="prstatus" aria-live="polite"></div>
+  </section>
+  <section id="ssecurity" class="ssec">
+    <h3>Security</h3>
+    <div class="mutl" id="pkinfo"></div>
+    <div id="pklist"></div>
+    <div class="row"><button type="button" id="pkadd">Add a passkey on this device</button><button type="button" id="pklogout">Log out</button></div>
+    <div class="mutl" id="pkstatus" aria-live="polite"></div>
+    <div class="mutl">Passkeys are tied to the address you registered them at (the HTTPS address and localhost have separate ones). Agents and scripts keep using the access token; it signs a browser in only while no passkey exists. Lost them all? Start the server once with <code>HALAY_RESET_PASSKEYS=1</code>.</div>
+  </section>
+  <section id="splugins" class="ssec">
+    <h3>Plugins</h3>
+    <div class="mutl">Add-ons shipped with the app, plus folders and npm packages (<code>halay-plugin-*</code>) in <code id="pdir"></code>. A plugin runs inside this server and this page with their full access, so enable only plugins you trust. New or updated plugin code takes effect after a server restart. See docs/plugin-authoring.md.</div>
+    <div id="plist"></div>
+  </section>
+  <section id="sserver" class="ssec">
+    <h3>Server</h3>
+    <div class="mutl" id="srvinfo"></div>
+    <div class="row"><button type="button" id="srestart"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-refresh-cw"/></svg><span>Restart server</span></button></div>
+    <div class="mutl">Agents and terminals keep running and are reattached. The page reconnects by itself when the server is back.</div>
+    <h4>Terminal</h4>
+    <div class="mutl" id="srvterm"></div>
+  </section>
+  <section id="sabout" class="ssec">
+    <h3>About and help</h3>
+    <p class="about-name"><b class="brand-name wordmark">halay</b> <small class="brand-version mutl"></small> <span class="tagline">Lead the swarm.</span> <span class="mutl">A web app for running coding agents (Claude Code, OpenCode, Cursor, Gemini, Antigravity) side by side: start them in folders, follow their work, approve what they ask and let a Swarm chat hand out the work.</span></p>
+    <div class="row about-links"><a class="btn" href="#" target="_blank" rel="noopener" data-brand-link="docslink"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-book-open"/></svg><span>Documentation</span></a><a class="btn" href="#" target="_blank" rel="noopener" data-brand-link="srclink"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-external-link"/></svg><span>Source code</span></a></div>
+    <div class="mutl">Needs the Claude Code CLI (<code>claude</code>) on this server, signed in. Server details are under Server above.</div>
+    <h4 id="kshead">Keyboard shortcuts</h4>
+    <dl class="keys" aria-labelledby="kshead">
+      <div><dt><kbd class="kmod">⌘</kbd><kbd>K</kbd></dt><dd>Quick switcher: agents, folders and past sessions</dd></div>
+      <div><dt><kbd>/</kbd></dt><dd>Search all history</dd></div>
+      <div><dt><kbd>g</kbd> <kbd>t</kbd></dt><dd>Open Tasks</dd></div>
+      <div><dt><kbd>g</kbd> <kbd>h</kbd></dt><dd>Open History</dd></div>
+      <div><dt><kbd>Enter</kbd></dt><dd>Send a message (<kbd>Shift</kbd> <kbd>Enter</kbd> for a new line)</dd></div>
+      <div><dt><kbd class="kmod">⌘</kbd><kbd>S</kbd></dt><dd>Save in the editor</dd></div>
+      <div><dt><kbd>Esc</kbd></dt><dd>Close a dialog, menu or the switcher</dd></div>
+    </dl>
+  </section>
+  </div>
+  </div>
+  <footer class="dlg-foot"><div class="mutl fstat" id="nstatus" aria-live="polite"></div><span class="sp"></span><button type="button" id="sclose">Close</button><button type="button" class="primary" id="ssave">Save</button></footer>
+</dialog>
+
+<template id="welcometpl">
+  <div id="empty" class="welcome"><div class="wc">
+    <div class="wh"><img src="/favicon.svg" alt="" width="32" height="32"><div><h2 class="brand-name wordmark">halay</h2><p class="tagline">Lead the swarm.</p></div></div>
+    <p>Run coding agents side by side: Claude Code, OpenCode, Cursor, Gemini or Antigravity. Each agent works in a folder you pick; you follow along, answer its questions and approve what it wants to run.</p>
+    <div class="wnote" hidden role="note"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-triangle-alert"/></svg><span><b class="wn-missing">The Claude Code CLI isn't installed on this server.</b><b class="wn-login">The Claude Code CLI isn't signed in.</b> Install it from <a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" rel="noopener">docs.anthropic.com</a>, then run <code>claude</code> once in a terminal to sign in.</span></div>
+    <ol class="wsteps">
+      <li><button class="wstep primary" id="wnew"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-plus"/></svg><span><b>Start an agent</b><small>Pick a folder and say what to do</small></span></button></li>
+      <li><button class="wstep" id="wcond"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-compass"/></svg><span><b>Open the Swarm chat</b><small>Describe a bigger job; it plans it and starts agents for you</small></span></button></li>
+      <li><a class="wstep" id="wdocs" href="#" target="_blank" rel="noopener" data-brand-link="docslink"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-book-open"/></svg><span><b>Read the guide</b><small>What agents, tasks, rooms and bots are</small></span></a></li>
+    </ol>
+    <div class="wr" hidden><small>Recent agents</small></div>
+  </div></div>
+</template>
+
+<div id="toasts" popover="manual"></div>
+
+<dialog id="vdlg" aria-labelledby="vname">
+  <div id="vhead"><div class="vt"><b id="vname"></b><small id="vmeta"></small></div><a class="btn" id="vopen" target="_blank" rel="noopener" hidden>Open</a><a class="btn" id="vdl" hidden>Download</a><button id="vwrap" hidden>Wrap</button><button id="vedit" hidden>Edit</button><button id="vclose" class="dlg-x" aria-label="Close" title="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></div>
+  <div id="vbody"></div>
+</dialog>
+
+<dialog id="fdlg" class="dlgx" aria-labelledby="fhead">
+  <header class="dlg-head"><button type="button" class="dlg-icb" id="fback" aria-label="Back to the folder" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-arrow-left"/></svg></button><div class="dlg-t"><h2 id="fhead">Files</h2><small class="fcrumb"></small></div><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-body">
+  <div id="flist" class="dlist"></div>
+  <div id="fview" class="md" hidden></div>
+  </div>
+  <footer class="dlg-foot"><button type="button" id="fedit" title="Open the code editor here"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-code"/></svg><span>Editor</span></button><span class="sp"></span><button type="button" id="fclose">Close</button></footer>
+</dialog>
+
+<dialog id="gdlg" class="dlgx" aria-labelledby="gtitle">
+  <header class="dlg-head"><button type="button" class="dlg-icb" id="gback" aria-label="Back to repositories" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-arrow-left"/></svg></button><div class="dlg-t"><h2 id="gtitle">Git</h2><small>Branches, changes and worktrees in this agent's folder</small></div><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-body"><div class="gbody" id="gbody"></div></div>
+  <footer class="dlg-foot"><button type="button" id="grefresh"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-refresh-cw"/></svg><span>Refresh</span></button><span class="sp"></span><button type="button" id="gclose">Close</button></footer>
+</dialog>
+
+<dialog id="pgdlg" class="dlgx" aria-labelledby="pghead">
+  <header class="dlg-head"><div class="dlg-t"><h2 id="pghead">Plugin</h2><small id="pgsub"></small></div><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-body"><div id="pgbody"></div></div>
+  <footer class="dlg-foot"><span class="sp"></span><button type="button" id="pgclose">Close</button></footer>
+</dialog>
+
+<dialog id="udlg" class="dlgx" aria-labelledby="uhead">
+  <header class="dlg-head"><div class="dlg-t"><h2 id="uhead">Usage</h2><small>Tokens and estimated cost, all agents</small></div><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div class="dlg-body"><div class="gbody" id="ubody"></div></div>
+  <footer class="dlg-foot"><button type="button" id="utable" aria-expanded="false">Show table</button><span class="sp"></span><button type="button" id="uclose">Close</button></footer>
+</dialog>
+
+<dialog id="bdlg" class="dlgx" aria-labelledby="bhead">
+  <header class="dlg-head"><div class="dlg-t"><h2 id="bhead">Browser</h2><small id="bsub"></small></div><select id="bprof" class="fld" aria-label="Browser profile"></select><button type="button" class="dlg-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div id="bnav">
+    <button type="button" id="bback" aria-label="Back" title="Back"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-arrow-left"/></svg></button><button type="button" id="bfwd" aria-label="Forward" title="Forward"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-arrow-right"/></svg></button><button type="button" id="breload" aria-label="Reload" title="Reload"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-refresh-cw"/></svg></button>
+    <input class="fld" id="burl" type="text" inputmode="url" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Address or search" aria-label="Address">
+    <button type="button" id="bzoom" title="Fit to width / actual size" aria-label="Toggle zoom" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-move-horizontal"/></svg></button>
+  </div>
+  <div id="btabs" role="tablist" aria-label="Tabs"></div>
+  <div id="bctl"><span id="bwho"></span><button type="button" class="primary" id="btake">Take control</button></div>
+  <div id="bstage"><canvas id="bcv" tabindex="0" aria-label="Browser page"></canvas><div id="bmsg"></div></div>
+  <div id="bkeys" hidden><input class="fld" id="btext" type="text" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="send" placeholder="Type here, Enter sends it to the page" aria-label="Text to type into the page"><button type="button" data-k="Enter">Enter</button><button type="button" data-k="Tab">Tab</button><button type="button" data-k="Backspace" aria-label="Backspace">&#9003;</button><button type="button" data-k="Escape">Esc</button><button type="button" data-k="ArrowUp" aria-label="Up">&#8593;</button><button type="button" data-k="ArrowDown" aria-label="Down">&#8595;</button></div>
+</dialog>
+
+<dialog id="xdlg" class="dlgx" aria-labelledby="xhead">
+  <header class="dlg-head"><h2 id="xhead" class="sr-only">Terminal</h2><div id="xtabs" role="tablist" aria-label="Terminals"></div><button type="button" class="dlg-icb" id="xnew" title="New terminal in your home folder" aria-label="New terminal"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-plus"/></svg></button><button type="button" class="dlg-x" aria-label="Close (terminals keep running)" title="Close (terminals keep running)"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div id="xbody"><div id="xempty" class="mutl"></div><div id="xover" hidden><div class="xovbar"><span id="xovh"></span><button type="button" class="primary" id="xova"></button><button type="button" id="xovx">Done</button></div><textarea id="xovt" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Terminal text"></textarea></div></div>
+  <div id="xkeys" role="toolbar" aria-label="Terminal keys"><button type="button" data-k="esc">Esc</button><button type="button" data-k="tab">Tab</button><button type="button" data-k="ctrl" aria-pressed="false">Ctrl</button><button type="button" data-k="bs" aria-label="Backspace (hold to repeat)">⌫</button><button type="button" data-k="left" aria-label="Left">←</button><button type="button" data-k="up" aria-label="Up">↑</button><button type="button" data-k="down" aria-label="Down">↓</button><button type="button" data-k="right" aria-label="Right">→</button><button type="button" data-k="copy">Copy</button><button type="button" data-k="paste">Paste</button><button type="button" data-s="|">|</button><button type="button" data-s="~">~</button><button type="button" data-s="/">/</button><button type="button" data-s="-">-</button></div>
+</dialog>
+
+<dialog id="edlg" class="dlgx" aria-labelledby="ehead">
+  <header class="dlg-head"><button type="button" class="dlg-icb" id="etreeb" aria-label="Files" title="Files" aria-controls="etree" aria-expanded="true"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-panel-left"/></svg></button><div class="dlg-t"><h2 id="ehead">Editor</h2><small id="esub"></small></div><button type="button" class="hb" id="ediff" title="Compare with git HEAD" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-file-diff"/></svg><span>Diff</span></button><button type="button" class="hb primary" id="esave" title="Save (Ctrl/Cmd+S)" disabled><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-save"/></svg><span>Save</span></button><button type="button" class="dlg-x" aria-label="Close (unsaved files stay open)" title="Close (unsaved files stay open)"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-x"/></svg></button></header>
+  <div id="ebody">
+    <aside id="etree" aria-label="Files">
+      <div id="etbar" role="toolbar" aria-label="File actions"><button type="button" id="enewf" title="New file" aria-label="New file"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-file-plus"/></svg></button><button type="button" id="enewd" title="New folder" aria-label="New folder"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-folder-plus"/></svg></button><button type="button" id="eren" title="Rename" aria-label="Rename"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-pencil"/></svg></button><button type="button" id="edel" title="Delete" aria-label="Delete"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-trash-2"/></svg></button><span class="sp"></span><button type="button" id="ehid" title="Show .git and node_modules" aria-label="Show .git and node_modules" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-eye-off"/></svg></button><button type="button" id="erefresh" title="Refresh" aria-label="Refresh"><svg class="ic" aria-hidden="true"><use href="/icons.svg#i-refresh-cw"/></svg></button></div>
+      <div id="etlist" role="tree" aria-label="Files"></div>
+    </aside>
+    <div id="escrim" hidden></div>
+    <div id="emain">
+      <div id="etabs" role="tablist" aria-label="Open files"></div>
+      <div id="ebanner" role="status" hidden></div>
+      <div id="ehost"></div>
+      <div id="eempty" class="mutl"></div>
+    </div>
+  </div>
+</dialog>
+
+<script src="/vendor/marked.min.js"></script>
+<script src="/vendor/purify.min.js"></script>
+<script src="/vendor/hljs.min.js"></script>
+<link rel="stylesheet" href="/vendor/hljs-light.css" media="(prefers-color-scheme: light)" data-hl="light">
+<link rel="stylesheet" href="/vendor/hljs-dark.css" media="(prefers-color-scheme: dark)" data-hl="dark">
+<script src="/js/state.js"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/pages.js"></script>
+<script src="/js/agents.js"></script>
+<script src="/js/router.js"></script>
+<script src="/js/upload.js"></script>
+<script src="/js/chat.js"></script>
+<script src="/js/files.js"></script>
+<script src="/js/viewer.js"></script>
+<script src="/js/history.js"></script>
+<script src="/js/approvals-tasks.js"></script>
+<script src="/js/schedules.js"></script>
+<script src="/js/rooms.js"></script>
+<script src="/js/bots.js"></script>
+<script src="/js/settings.js"></script>
+<script src="/js/appearance.js"></script>
+<script src="/js/folder.js"></script>
+<script src="/js/git.js"></script>
+<script src="/js/editor.js"></script>
+<script src="/js/usage-search.js"></script>
+<script src="/js/switcher.js"></script>
+<script src="/js/context.js"></script>
+<script src="/vendor/simplewebauthn.js"></script>
+<script src="/js/terminal.js"></script>
+<script src="/js/security.js"></script>
+<script src="/js/peers.js"></script>
+<script src="/js/browser.js"></script>
+<script src="/js/accounts.js"></script>
+<script src="/js/limits.js"></script>
+<script src="/js/plugins.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>

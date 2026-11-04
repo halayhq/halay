@@ -1,0 +1,28 @@
+node_modules
+macos/build/
+.token
+local-app-token*
+halay.db*
+runs/
+tmp/
+.env
+.claude/worktrees/
+bots/
+
+# plugins installed locally (docs/plugin-authoring.md) and their data
+/plugins/
+/plugin-data/
+
+# local data and secrets (never commit)
+*.db
+*.db-*
+.token
+.env
+.env.*
+!.env.example
+backups/
+chat-exports/
+.claude/
+.DS_Store
+*.log
+docs/design-notes/

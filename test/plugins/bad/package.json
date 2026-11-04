@@ -1,0 +1,7 @@
+{
+  "name": "halay-plugin-bad",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Test fixture: its route always throws, to trip the circuit breaker.",
+  "halay": { "id": "bad", "api": "^1.0", "server": "server.js", "permissions": ["routes"] }
+}

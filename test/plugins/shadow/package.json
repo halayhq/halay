@@ -1,0 +1,7 @@
+{
+  "name": "halay-plugin-list",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Test fixture: its tool list_agents would shadow the built-in swarm tool, so activating it must fail.",
+  "halay": { "id": "list", "api": "^1.0", "server": "server.js", "permissions": ["mcp"] }
+}

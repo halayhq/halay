@@ -1,0 +1,33 @@
+  .fchips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; align-items:flex-start; }
+  .fchip { display:inline-flex; align-items:center; min-height:44px; max-width:100%; padding:4px 10px; font:12px ui-monospace, monospace; overflow-wrap:anywhere; text-align:left; }
+  .fchip.out { cursor:default; color:var(--mut); border-style:dashed; }
+  .fthumb { padding:0; min-width:44px; min-height:44px; display:inline-flex; background:var(--bg); overflow:hidden; }
+  .fthumb img { display:block; max-width:min(100%, 220px); max-height:140px; min-width:44px; min-height:44px; object-fit:contain; }
+  .fpath { cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px; padding:12px 3px; margin:-12px 0; }
+  #vdlg { width:min(1100px, 96vw); height:90dvh; max-height:90dvh; padding:0; overflow:hidden; }
+  #vdlg[open] { display:flex; flex-direction:column; }
+  #vhead { display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--line); flex:none; flex-wrap:wrap; }
+  #vhead .vt { flex:1 1 140px; min-width:0; } #vhead b { display:block; overflow-wrap:anywhere; } #vhead small { color:var(--mut); overflow-wrap:anywhere; }
+  #vhead button, #vhead a.btn { min-height:44px; min-width:44px; display:inline-flex; align-items:center; justify-content:center; padding:6px 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); text-decoration:none; }
+  .hljs { background:transparent !important; } pre code.hljs { padding:0 !important; }
+  /* the colour theme's own code colours (js/themes.js syn; js/theme.js sets data-syn): over highlight.js's GitHub sheets */
+  :root[data-syn] .hljs { color:var(--fg); }
+  :root[data-syn] :is(.hljs-keyword, .hljs-doctag, .hljs-template-tag, .hljs-template-variable, .hljs-variable.language_, .hljs-meta .hljs-keyword, .hljs-selector-pseudo) { color:var(--syn-kw); }
+  :root[data-syn] :is(.hljs-title, .hljs-title.function_, .hljs-section) { color:var(--syn-fn); }
+  :root[data-syn] :is(.hljs-string, .hljs-regexp, .hljs-meta .hljs-string, .hljs-char.escape_) { color:var(--syn-str); }
+  :root[data-syn] :is(.hljs-number, .hljs-literal, .hljs-attr, .hljs-attribute, .hljs-variable, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id, .hljs-meta, .hljs-link) { color:var(--syn-num); }
+  :root[data-syn] :is(.hljs-type, .hljs-built_in, .hljs-symbol, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-params .hljs-type) { color:var(--syn-type); }
+  :root[data-syn] :is(.hljs-comment, .hljs-quote, .hljs-code, .hljs-formula) { color:var(--syn-com); }
+  :root[data-syn] :is(.hljs-name, .hljs-selector-tag, .hljs-tag, .hljs-bullet) { color:var(--syn-tag); }
+  #vhead [hidden] { display:none !important; }
+  #vbody { flex:1; min-height:0; display:flex; flex-direction:column; }
+  #vstage { flex:1; min-height:0; position:relative; overflow:hidden; touch-action:none; background:#0003; cursor:grab; user-select:none; -webkit-user-select:none; }
+  #vstage img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; transform-origin:50% 50%; -webkit-user-drag:none; pointer-events:none; will-change:transform; }
+  #vzoom { position:absolute; right:8px; bottom:8px; display:flex; gap:6px; } #vzoom button { min-width:44px; min-height:44px; background:var(--bg); }
+  #vtext { flex:1; min-height:0; margin:0; padding:10px 12px; overflow:auto; font:12.5px/1.45 ui-monospace, monospace; white-space:pre; tab-size:4; }
+  #vtext.wrap { white-space:pre-wrap; overflow-wrap:anywhere; }
+  #vnote { padding:8px 12px; font-size:13px; color:var(--mut); border-top:1px solid var(--line); overflow-wrap:anywhere; }
+  #vnote.warn { color:var(--err); }
+  .vcenter { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:20px; text-align:center; overflow-wrap:anywhere; }
+  .vcenter a.btn { display:inline-flex; align-items:center; min-height:44px; padding:6px 18px; border-radius:8px; background:var(--acc); color:var(--on-acc); text-decoration:none; }
+  @media (max-width: 700px) { #vhead { padding:calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 8px calc(10px + env(safe-area-inset-left)); } #vbody { padding-bottom:env(safe-area-inset-bottom); } #vzoom { bottom:calc(8px + env(safe-area-inset-bottom)); } #vdlg { width:100vw; height:100dvh; max-height:100dvh; max-width:100vw; border-radius:0; border:0; } }

@@ -1,0 +1,8 @@
+  /* context gauge, handoff note */
+  .ctxg { display:inline-block; font-size:11px; line-height:16px; padding:0 6px; border-radius:8px; margin-left:6px; vertical-align:1px; color:var(--mut); border:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  .ctxg.warn { color:var(--on-st); background:var(--warn); border-color:var(--warn); }
+  .ctxg.high { color:var(--on-st); background:var(--err); border-color:var(--err); }
+  #ctxbox .ctxg { margin-left:0; line-height:20px; }
+  #ctxbox:empty { display:none; }
+  .msg.handoff summary { cursor:pointer; color:var(--mut); font-size:13px; }
+  .pill.context { background:var(--warn); }

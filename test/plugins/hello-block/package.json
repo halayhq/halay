@@ -1,0 +1,14 @@
+{
+  "name": "halay-plugin-hello-block",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Test fixture (test/plugins-e2e.mjs): a sidebar block, a page, a route, an agent tool and an event hook.",
+  "halay": {
+    "id": "hello-block",
+    "api": "^1.0",
+    "server": "server.js",
+    "ui": "ui.js",
+    "permissions": ["events:agents", "mcp", "routes", "ui", "agents:read"],
+    "settings": { "greeting": { "type": "string", "default": "hello" } }
+  }
+}

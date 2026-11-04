@@ -1,0 +1,23 @@
+  /* sidebar sections shown as pages in the main area (js/pages.js): the dialog shell without the modal chrome */
+  #page { flex:1; min-width:0; min-height:0; display:flex; }
+  #page[hidden], body.pg #main { display:none; }
+  #page > dialog.page { position:static; inset:auto; flex:1; width:auto; max-width:none; height:auto; max-height:none; margin:0; padding:0; border:0; border-radius:0; box-shadow:none; animation:none; background:var(--bg); }
+  #page > dialog.page:not([open]) { display:none; }
+  #page .dlg-head { padding:18px max(20px, calc((100% - 920px) / 2)) 12px; min-height:56px; }
+  #page .dlg-head h2 { font-size:19px; }
+  #page .dlg-body, #page .dlg-tools { padding-left:max(20px, calc((100% - 920px) / 2)); padding-right:max(20px, calc((100% - 920px) / 2)); }
+  #page .dlg-foot { padding-left:max(20px, calc((100% - 920px) / 2)); padding-right:max(20px, calc((100% - 920px) / 2)); background:var(--bg); }
+  #page :is(#aclose, #tclose, #hclose, #sclose, #uclose) { display:none; } /* the sidebar navigates; × still returns to the chat */
+  #page #sdlg .dlg-body { padding-left:max(12px, calc((100% - 920px) / 2)); }
+  #tools button[aria-current=page], #tools #bmore.cur { background:var(--acc-s); color:var(--acc-t); }
+  #tmenu > button[aria-current=page], #tmenu > button[aria-current=page] .ic { color:var(--acc-t); } #tmenu > button[aria-current=page] { background:var(--acc-s); }
+  @media (max-width: 700px) {
+    body.pg { flex-direction:column; }
+    body.pg #page { order:0; }
+    body.pg #side { display:flex !important; order:1; flex:none; width:100%; border-right:0; } /* only its tab bar */
+    body.pg #side > :not(#tools, #tmenu) { display:none; }
+    #page .dlg-head { padding:calc(12px + env(safe-area-inset-top)) 12px 10px 16px; }
+    #page .dlg-body, #page .dlg-tools, #page .dlg-foot { padding-left:16px; padding-right:16px; }
+    #page .dlg-foot { padding-bottom:10px; }
+    #page .dlg-foot:not(:has(select, button:not([hidden]):not(#aclose, #tclose, #hclose, #sclose, #uclose))) { display:none; } /* nothing left but Close */
+  }

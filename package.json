@@ -1,0 +1,76 @@
+{
+  "name": "@halay/app",
+  "productName": "halay",
+  "shortName": "halay",
+  "version": "0.1.0",
+  "description": "Web UI to run and control coding agents (Claude Code, OpenCode, Cursor, Gemini CLI, Antigravity), one per folder.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/halayhq/halay.git"
+  },
+  "homepage": "https://halay.app",
+  "bugs": {
+    "url": "https://github.com/halayhq/halay/issues"
+  },
+  "author": "halay",
+  "type": "module",
+  "bin": {
+    "halay": "bin/halay.js"
+  },
+  "files": [
+    "src/",
+    "prompts/",
+    "plugins-builtin/",
+    "public/",
+    "macos/build/halay.app/",
+    "bin/halay.js",
+    "bin/swarm-restart",
+    "docs/*.md",
+    ".env.example",
+    "LICENSE",
+    "NOTICE",
+    "SECURITY.md",
+    "PRIVACY.md",
+    "TERMS.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node bin/dev.js",
+    "test": "node test/run-all.mjs",
+    "test:unit": "node test/run-all.mjs --unit",
+    "build:mac": "sh macos/build.sh",
+    "prepack": "sh macos/build.sh --prepack"
+  },
+  "dependencies": {
+    "@highlightjs/cdn-assets": "^11.12.0",
+    "@playwright/mcp": "0.0.77",
+    "@simplewebauthn/browser": "^9.0.1",
+    "@simplewebauthn/server": "^9.0.3",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "better-sqlite3": "^13.0.3",
+    "croner": "^10.0.1",
+    "dompurify": "^3.4.17",
+    "jsdom": "^30.1.3",
+    "marked": "^12.0.2",
+    "monaco-editor": "^0.57.0",
+    "web-push": "^3.6.7",
+    "ws": "^8.18.0"
+  },
+  "optionalDependencies": {
+    "node-pty": "^1.1.0"
+  },
+  "allowScripts": {
+    "node-pty@1.1.0": true,
+    "better-sqlite3@13.0.3": true,
+    "fsevents@2.3.2": true
+  },
+  "overrides": {
+    "dompurify": "$dompurify"
+  }
+}

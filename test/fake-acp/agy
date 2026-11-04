@@ -1,0 +1,131 @@
+#!/usr/bin/env node
+// A stand-in for Antigravity's `agy` (put test/fake-acp first in PATH), shaped after what agy 1.4.12 sent in recordings:
+// `agy acp --help` (on stderr, exit 0, like agy), `agy models` (a tab-separated list; with FAKE_AGY_NOAUTH it says "Please sign in" on stderr and exits 1)
+// and `agy acp`, an ACP server that
+//   - asks permission for shell commands, and for file writes and edits outside its own temp folder (the TMPDIR it was
+//     started with; real agy does not ask for a workspace under it), with allow_once/reject_once options and nothing else
+//   - runs MCP calls without asking (write_file { Path, Content }, edit_file { Path, Target, Replacement },
+//     mcp_<server>_<tool> as kind other titled "Run mcp_...", with a toolSummary in every rawInput)
+//   - takes `_meta.antigravity.systemPrompt.append` in session/new (and session/load) and offers three models in session/new
+//   - has no session/set_mode (method not found)
+// Appends every line it receives (and a {start} record with its argv) to $FAKE_ACP_LOG. A prompt's text picks the behaviour:
+//   fake-tool[:<command>]   (to the end of the line) run_command, asks; reports the option id it was answered with
+//   fake-nofail             anywhere in the prompt: a refused call gets no closing tool_call_update
+//   fake-write:<path>       write_file; fake-edit:<path>  edit_file; fake-mcp:<server>_<tool>  an MCP call
+//   fake-system             answers with the system prompt it was given (first 60 characters) and the model it runs
+//   fake-sleep-N            waits N seconds (session/cancel ends it with stopReason cancelled)
+//   anything else           a two-chunk reply, then end_turn with per-prompt usage (no usage_update, as agy)
+import fs from 'node:fs';
+import readline from 'node:readline';
+
+const argv = process.argv.slice(2);
+if (argv[0] === 'models') {
+  if (process.env.FAKE_AGY_NOAUTH) { process.stderr.write('\x1b[KError: Please sign in to view available models. Launch the CLI without arguments to sign in.\n'); process.exit(1); }
+  process.stdout.write('Fetching available models...\ngemini-3.8-flash-high\tGemini 3.8 Flash (High)\ngemini-3.8-flash-medium\tGemini 3.8 Flash (Medium)\ngemini-3.8-flash-low\tGemini 3.8 Flash (Low)\nclaude-sonnet-4-6\tClaude Sonnet 4.6 (Thinking)\n');
+  process.exit(0);
+}
+if (argv[0] === 'acp' && argv.includes('--help')) { process.stderr.write('Usage: agy acp [flags]\n\nStart the Agent Client Protocol (ACP) stdio server\n'); process.exit(0); }
+const LOG = process.env.FAKE_ACP_LOG;
+const log = (o) => LOG && fs.appendFileSync(LOG, JSON.stringify({ pid: process.pid, ...o }) + '\n');
+log({ start: { name: 'agy', argv, cwd: process.cwd() } });
+if (argv[0] !== 'acp') { process.stderr.write('fake agy: only `acp` is supported\n'); process.exit(1); }
+
+const out = (o) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...o }) + '\n');
+const update = (sessionId, u) => out({ method: 'session/update', params: { sessionId, update: u } });
+const MODELS = ['gemini-3.8-flash-high', 'gemini-3.8-flash-medium', 'gemini-3.8-flash-low'];
+const sessions = new Map(); // id -> { model, system }
+let n = 0, nextId = 0, turn = null;
+const waiting = new Map();
+const ask = (method, params) => new Promise((resolve) => { const id = String(++nextId); waiting.set(id, resolve); out({ id, method, params }); });
+const sleep = (ms, t) => new Promise((r) => { const h = setTimeout(r, ms); t.cancel = () => { clearTimeout(h); r('cancelled'); }; });
+const sessionInfo = (m) => ({ models: { availableModels: MODELS.map((modelId) => ({ modelId, name: modelId })), currentModelId: m }, configOptions: [{ id: 'model', name: 'Model', category: 'model', type: 'select', currentValue: 'gemini-3.8-flash', options: [{ value: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash' }] }] });
+
+async function prompt(id, { sessionId, prompt: parts }) {
+  const text = (parts || []).map((p) => p.text || '').join('');
+  const ses = sessions.get(sessionId);
+  const t = (turn = { cancel: null });
+  const end = (stopReason = 'end_turn') => { if (turn === t) turn = null; out({ id, result: { stopReason, usage: { inputTokens: 10, outputTokens: 5, thoughtTokens: 2, cachedReadTokens: 100, totalTokens: 117 } } }); };
+  const say = (s) => update(sessionId, { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: s } });
+  const sl = text.match(/fake-sleep-(\d+)/);
+  if (sl) { const r = await sleep(Number(sl[1]) * 1000, t); return r === 'cancelled' ? end('cancelled') : (say('slept'), end()); }
+  // a call as agy streams it: tool_call (in_progress), tool_call_update (pending), maybe the permission request, then the end
+  const call = async (tc, { asks, done, content }) => {
+    asks ??= tc.kind === 'edit' && !tc.rawInput.Path.startsWith((process.env.TMPDIR || '/nonexistent') + '/');
+    const base = { toolCallId: tc.id, name: tc.name, args: tc.rawInput, kind: tc.kind, title: tc.title, rawInput: tc.rawInput, ...(tc.locations && { locations: tc.locations }) };
+    update(sessionId, { sessionUpdate: 'tool_call', ...base, status: 'in_progress' });
+    let ok = true, answer = '';
+    if (asks) {
+      update(sessionId, { sessionUpdate: 'tool_call_update', ...base, status: 'pending' });
+      const r = await ask('session/request_permission', { sessionId, toolCall: { sessionUpdate: 'tool_call', ...base, status: 'pending' }, options: [{ optionId: 'allow', name: 'Allow', kind: 'allow_once' }, { optionId: 'deny', name: 'Deny', kind: 'reject_once' }] });
+      answer = r.result?.outcome?.optionId || r.result?.outcome?.outcome || 'none';
+      ok = answer === 'allow';
+      update(sessionId, { sessionUpdate: 'tool_call_update', ...base, status: 'in_progress' });
+    }
+    if (!ok && text.includes('fake-nofail')) return answer; // agy sometimes ends the turn without reporting a refused call's end
+    update(sessionId, { sessionUpdate: 'tool_call_update', ...base, status: ok ? 'completed' : 'failed', rawOutput: ok ? done : { output: '' }, content: ok ? content : [{ type: 'content', content: { type: 'text', text: '' } }] });
+    return answer;
+  };
+  let m;
+  if ((m = text.match(/fake-tool(?::(.+))?$/))) {
+    const cmd = m[1] || 'echo hi';
+    const a = await call({ id: `call_${++n}`, name: 'run_command', kind: 'execute', title: cmd, rawInput: { CommandLine: cmd, WaitMsBeforeAsync: 5000, toolSummary: 'Runs a command' } }, { asks: true, done: { output: 'Command exited with code 0.\n\nCommand output:\nhi\r\n', exit_code: 0 }, content: [{ type: 'content', content: { type: 'text', text: 'Command exited with code 0.\n\nCommand output:\nhi\r\n' } }] });
+    say(`answer=${a}`);
+    return end();
+  }
+  if ((m = text.match(/fake-write:(\S+)/))) {
+    await call({ id: `call_${++n}`, name: 'write_file', kind: 'edit', title: 'File ' + m[1].split('/').pop(), rawInput: { Content: 'hi\n', Path: m[1] }, locations: [{ path: m[1] }] }, { done: {}, content: [{ type: 'diff', path: m[1], newText: 'hi\n\n' }] });
+    say('written');
+    return end();
+  }
+  if ((m = text.match(/fake-edit:(\S+)/))) {
+    await call({ id: `call_${++n}`, name: 'edit_file', kind: 'edit', title: 'File ' + m[1].split('/').pop(), rawInput: { Path: m[1], Replacement: 'baz', Target: 'foo' }, locations: [{ path: m[1] }] }, { done: {}, content: [{ type: 'diff', path: m[1], oldText: 'foo\n\n', newText: 'baz\n\n' }] });
+    say('edited');
+    return end();
+  }
+  if ((m = text.match(/fake-mcp:(\S+)/))) {
+    const name = 'mcp_' + m[1];
+    await call({ id: `call_${++n}`, name, kind: 'other', title: 'Run ' + name, rawInput: { name: 'bob', toolSummary: 'Calls a tool' } }, { done: undefined });
+    say('mcp done');
+    return end();
+  }
+  if (text.includes('fake-search')) {
+    await call({ id: `call_${++n}`, name: 'search_web', kind: 'search', title: '"site:example.com" on Web', rawInput: { query: 'site:example.com' } }, { done: undefined });
+    return end();
+  }
+  if (text.includes('fake-system')) { say(`system=${(ses?.system || 'none').slice(0, 60)} model=${ses?.model}`); return end(); }
+  say('fake reply: ');
+  say(text.slice(-40));
+  end();
+}
+
+readline.createInterface({ input: process.stdin }).on('line', (l) => {
+  log({ in: l });
+  let m; try { m = JSON.parse(l); } catch { return; }
+  if (m.id !== undefined && !m.method) { const r = waiting.get(String(m.id)); waiting.delete(String(m.id)); return r && r(m); }
+  const p = m.params || {};
+  const system = p._meta?.antigravity?.systemPrompt?.append;
+  switch (m.method) {
+    case 'initialize': return out({ id: m.id, result: { protocolVersion: 1, agentCapabilities: { loadSession: true, sessionCapabilities: { resume: {}, close: {}, load: {}, list: {}, additionalDirectories: {} }, _meta: { antigravity: { tier: true, systemPrompt: { append: true } } } }, agentInfo: { name: 'Antigravity ACP Server', version: '1.4.12' }, authMethods: [{ id: 'oauth-personal', name: 'Log in with Google' }] } });
+    case 'session/new': {
+      if (process.env.FAKE_AGY_NOAUTH) return out({ id: m.id, error: { code: -32000, message: 'Please sign in' } });
+      const id = `00000000-0000-4000-8000-${String(++n).padStart(12, '0')}-${process.pid}`;
+      sessions.set(id, { model: MODELS[0], system });
+      return out({ id: m.id, result: { sessionId: id, ...sessionInfo(MODELS[0]) } });
+    }
+    case 'session/load': {
+      sessions.set(p.sessionId, { model: MODELS[0], system });
+      update(p.sessionId, { sessionUpdate: 'user_message_chunk', content: { type: 'text', text: 'old prompt' } });
+      update(p.sessionId, { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'old reply (replayed)' } });
+      return out({ id: m.id, result: sessionInfo(MODELS[0]) });
+    }
+    case 'session/set_model': {
+      const s = sessions.get(p.sessionId);
+      if (!MODELS.includes(p.modelId) || !s) return out({ id: m.id, error: { code: -32602, message: `Unknown model ID: ${p.modelId}` } });
+      s.model = p.modelId;
+      return out({ id: m.id, result: {} });
+    }
+    case 'session/prompt': return prompt(m.id, p);
+    case 'session/cancel': return turn?.cancel?.();
+    default: if (m.id !== undefined) out({ id: m.id, error: { code: -32601, message: 'Method not found: ' + m.method } });
+  }
+});

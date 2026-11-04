@@ -1,0 +1,202 @@
+#!/usr/bin/env node
+// A stand-in for an ACP agent, for e2e tests that must not make model calls: put this folder first in PATH. It answers
+// as `opencode acp`, `gemini --acp` and `cursor-agent acp` (the other names are symlinks to this file), and their
+// --help probes. Appends every line it receives (and one {start} record with its argv and config env) to $FAKE_ACP_LOG.
+// A prompt's text picks the behaviour:
+//   fake-tool    a shell call that asks for permission, then reports how it was answered
+//   fake-edit    an edit (diff) that asks for permission; fake-edit:<path> edits that file
+//   fake-swarm   a swarm MCP tool call that asks for permission (the swarm should allow it by itself)
+//   fake-task    a subagent (task) call that asks for permission
+//   fake-plan    a plan update
+//   fake-sleep-N waits N seconds (a session/cancel ends it early with stopReason cancelled)
+//   fake-crash   exits with code 3 and a line on stderr
+//   fake-question, fake-createplan, fake-todos, fake-subtask   Cursor's extension methods (cursor/ask_question, ...)
+//   anything else: a thought, a two-chunk reply, a usage update and end_turn
+// `opencode models` prints two models. History: as opencode and cursor-agent (not gemini) it lists two sessions in
+// $FAKE_ACP_LIST_CWD with session/list, one per page; loading ses_hist_* replays a whole conversation (a user message
+// that carried the swarm instructions, thinking, a finished shell call and the reply). As cursor-agent it is like the real one (2026.10): session/new waits for
+// `authenticate`, sessions list their models (session/set_model picks one, session/set_mode switches to plan), and an
+// MCP tool call is titled "<server>-<tool>: <tool>" with rawInput {providerIdentifier, toolName, args}.
+import fs from 'node:fs';
+import readline from 'node:readline';
+
+import os from 'node:os';
+import path from 'node:path';
+const NAME = path.basename(process.argv[1]), argv = process.argv.slice(2);
+const CURSOR = NAME === 'cursor-agent';
+if (argv[0] === 'models') { // `opencode models`, `cursor-agent models`
+  process.stdout.write(CURSOR ? 'Available models\n\nauto - Auto\ngpt-x - GPT X  (current)\nsonnet-y-thinking - Sonnet Y Thinking\n' : 'opencode/big-pickle\nopencode/other\n');
+  process.exit(0);
+}
+// login checks (Settings → Accounts): `cursor-agent status --format json`, `opencode auth list`; FAKE_ACP_NOAUTH logs out
+if (CURSOR && argv[0] === 'status') {
+  const out = !process.env.FAKE_ACP_NOAUTH;
+  process.stdout.write(JSON.stringify({ status: out ? 'authenticated' : 'unauthenticated', isAuthenticated: out, hasAccessToken: out, ...(out && { userInfo: { email: 'dev@example.com' } }) }, null, 2) + '\n');
+  process.exit(0);
+}
+if (argv[0] === 'auth' && argv[1] === 'list') { process.stdout.write('\x1b[0m\n┌  Credentials \x1b[90m~/.local/share/opencode/auth.json\n│\n└  1 credentials\n'); process.exit(0); }
+if (argv.includes('--help')) { process.stdout.write(NAME === 'gemini' ? 'Options:\n  --acp  Starts the agent in ACP mode\n' : `Usage: ${NAME} acp [options]\n`); process.exit(0); }
+const LOG = process.env.FAKE_ACP_LOG;
+const log = (o) => LOG && fs.appendFileSync(LOG, JSON.stringify({ pid: process.pid, ...o }) + '\n');
+log({ start: { name: NAME, argv, config: process.env.OPENCODE_CONFIG_CONTENT ?? null, geminiSettings: process.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH ?? null, cursorConfigDir: process.env.CURSOR_CONFIG_DIR ?? null, xdgData: process.env.XDG_DATA_HOME ?? null, geminiHome: process.env.GEMINI_CLI_HOME ?? null, cwd: process.cwd() } });
+if (!argv.includes('acp') && !argv.includes('--acp')) { process.stderr.write(`fake ${NAME}: only ACP mode is supported\n`); process.exit(1); }
+
+const out = (o) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...o }) + '\n');
+const update = (sessionId, u) => out({ method: 'session/update', params: { sessionId, update: u } });
+let nextId = 0, sessions = 0, cost = 0, authed = !CURSOR, pendingNew = null;
+// Cursor with the client's parameterizedModelPicker (what the swarm declares): models by name, and each model's own
+// options, its reasoning level among them (category thought_level, named and valued differently per model)
+const CURSOR_MODELS = {
+  default: [],
+  'gpt-x': [{ id: 'reasoning', values: ['none', 'low', 'medium', 'high', 'extra-high'] }, { id: 'fast', category: 'model_config', values: ['false', 'true'] }],
+  'sonnet-y': [{ id: 'effort', values: ['low', 'medium', 'high', 'xhigh', 'max'] }],
+};
+let cursorModel = 'default';
+const cursorSet = {};
+const cursorOptsOf = (model) => CURSOR_MODELS[model].map((o) => ({ id: o.id, name: o.id, category: o.category || 'thought_level', type: 'select', currentValue: cursorSet[o.id] ?? (o.values.includes('medium') ? 'medium' : o.values[0]), options: o.values.map((value) => ({ value, name: value })) }));
+const cursorOpts = () => [
+  { id: 'mode', name: 'Mode', category: 'mode', type: 'select', currentValue: 'agent', options: ['agent', 'plan', 'ask'].map((value) => ({ value, name: value })) },
+  { id: 'model', name: 'Model', category: 'model', type: 'select', currentValue: cursorModel, options: Object.keys(CURSOR_MODELS).map((value) => ({ value, name: value })) },
+  ...cursorOptsOf(cursorModel),
+];
+const cursorModels = () => ({ currentModelId: cursorModel, availableModels: Object.keys(CURSOR_MODELS).map((modelId) => ({ modelId, name: modelId })) });
+const newSession = (id) => out({ id, result: { sessionId: `ses_fake_${process.pid}_${++sessions}`, configOptions: CURSOR ? cursorOpts() : configOptions(), ...(CURSOR && { models: cursorModels(), modes: { currentModeId: 'agent', availableModes: [{ id: 'agent' }, { id: 'plan' }, { id: 'ask' }] } }) } });
+const waiting = new Map(); // our request id -> resolve
+const ask = (method, params) => new Promise((resolve) => { const id = nextId++; waiting.set(id, resolve); out({ id, method, params }); });
+let turn = null; // { cancel }
+const sleep = (ms, t) => new Promise((r) => { const h = setTimeout(r, ms); if (t) t.cancel = () => { clearTimeout(h); r('cancelled'); }; });
+const configOptions = (model = 'opencode/big-pickle') => [
+  { id: 'model', name: 'Model', category: 'model', type: 'select', currentValue: model, options: [{ value: 'opencode/big-pickle', name: 'Big Pickle' }, { value: 'opencode/other', name: 'Other' }] },
+  { id: 'mode', name: 'Session Mode', category: 'mode', type: 'select', currentValue: 'build', options: [{ value: 'build', name: 'build' }, { value: 'plan', name: 'plan' }] },
+];
+
+async function permission(sessionId, toolCall) {
+  const r = await ask('session/request_permission', { sessionId, toolCall, options: [{ optionId: 'once', kind: 'allow_once', name: 'Allow once' }, { optionId: 'always', kind: 'allow_always', name: 'Always allow' }, { optionId: 'reject', kind: 'reject_once', name: 'Reject' }] });
+  return r.result?.outcome?.optionId || r.result?.outcome?.outcome || 'none';
+}
+
+async function prompt(id, { sessionId, prompt: parts }) {
+  const text = (parts || []).map((p) => p.text || '').join('');
+  const t = (turn = { cancel: null });
+  const end = (stopReason = 'end_turn') => { if (turn === t) turn = null; out({ id, result: { stopReason, usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15, cachedReadTokens: 100 } } }); };
+  const say = (s) => update(sessionId, { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: s } });
+  if (text.includes('fake-crash')) { process.stderr.write('fake opencode: boom\n'); process.exit(3); }
+  const sl = text.match(/fake-sleep-(\d+)/);
+  if (sl) { const r = await sleep(Number(sl[1]) * 1000, t); return r === 'cancelled' ? end('cancelled') : (say('slept'), end()); }
+  const tool = async (tc, done) => {
+    update(sessionId, { sessionUpdate: 'tool_call', toolCallId: tc.toolCallId, title: tc.title0 || tc.title, kind: tc.kind, status: 'pending', rawInput: {} });
+    update(sessionId, { sessionUpdate: 'tool_call_update', toolCallId: tc.toolCallId, status: 'pending', kind: tc.kind, title: tc.title, rawInput: tc.rawInput, ...(tc.content ? { content: tc.content } : {}) });
+    // Cursor's request carries a text with the reason it asks, and its shell output comes as rawOutput only
+    const why = CURSOR && tc.kind === 'execute' ? [{ type: 'content', content: { type: 'text', text: 'Not in allowlist: ls' } }] : [];
+    const answer = await permission(sessionId, { toolCallId: tc.toolCallId, title: tc.title, kind: tc.kind, status: 'pending', rawInput: tc.rawInput, ...(tc.content || why.length ? { content: [...(tc.content || []), ...why] } : {}) });
+    const ok = answer === 'once' || answer === 'always';
+    if (why.length && ok) update(sessionId, { sessionUpdate: 'tool_call_update', toolCallId: tc.toolCallId, status: 'completed', rawOutput: { exitCode: 0, stdout: done, stderr: '' } });
+    else update(sessionId, { sessionUpdate: 'tool_call_update', toolCallId: tc.toolCallId, status: ok ? 'completed' : 'failed', content: [{ type: 'content', content: { type: 'text', text: ok ? done : 'rejected by the user' } }] });
+    say(`answer=${answer}`);
+    end();
+  };
+  if (text.includes('fake-tool')) return tool({ toolCallId: 'call-tool', kind: 'execute', title0: 'bash', title: 'ls -la', rawInput: { command: 'ls -la' } }, 'file listing');
+  if (text.includes('fake-edit')) { const f = text.match(/fake-edit:(\S+)/)?.[1] || '/x/a.txt'; return tool({ toolCallId: 'call-edit', kind: 'edit', title: 'edit ' + f, rawInput: { filePath: f }, content: [{ type: 'diff', path: f, oldText: 'old', newText: 'new' }] }, 'edited'); }
+  if (text.includes('fake-swarm')) return tool(CURSOR
+    ? { toolCallId: 'call-swarm', kind: 'other', title: 'swarm-list_agents: list_agents', rawInput: { providerIdentifier: 'swarm', toolName: 'list_agents', args: {} } }
+    : { toolCallId: 'call-swarm', kind: 'other', title: 'swarm_list_agents', rawInput: {} }, 'no agents');
+  if (text.includes('fake-geminiplan')) { // Gemini's exit_plan_mode: kind other, no rawInput, the title names the plan file
+    const f = path.join(os.tmpdir(), `fake-plan-${process.pid}.md`);
+    fs.writeFileSync(f, '# Rename\n\n1. rename a to b\n2. fix the imports\n');
+    return tool({ toolCallId: 'call-plan', kind: 'other', title: 'Requesting plan approval for: ' + f }, 'Plan approved: ' + f);
+  }
+  if (text.includes('fake-task')) return tool({ toolCallId: 'call-task', kind: 'other', title: 'task', rawInput: { description: 'explore' } }, 'explored');
+  if (text.includes('fake-question')) {
+    const r = await ask('cursor/ask_question', { toolCallId: 'call-q', title: 'Pick', questions: [{ id: 'q1', prompt: 'Which color?', options: [{ id: 'r', label: 'Red' }, { id: 'g', label: 'Green, light' }], allowMultiple: true }] });
+    say('question=' + JSON.stringify(r.result?.outcome));
+    return end();
+  }
+  if (text.includes('fake-createplan')) {
+    const r = await ask('cursor/create_plan', { toolCallId: 'call-p', name: 'Refactor', overview: 'Two steps', plan: '1. do a\n2. do b', todos: [] });
+    say('plan=' + r.result?.outcome?.outcome);
+    return end();
+  }
+  if (text.includes('fake-todos')) { // the first as the docs describe it (a notification), the second as cursor-agent 2026.10 sends it (a request)
+    out({ method: 'cursor/update_todos', params: { toolCallId: 'call-t', merge: false, todos: [{ id: '1', content: 'one', status: 'in_progress' }, { id: '2', content: 'two', status: 'pending' }] } });
+    const r = await ask('cursor/update_todos', { toolCallId: 'call-t2', merge: true, todos: [{ id: '1', content: 'one', status: 'completed' }] });
+    say('todos=' + (r.result?.outcome?.outcome || 'error'));
+    return end();
+  }
+  if (text.includes('fake-subtask')) { // like cursor-agent 2026.10: a task tool call, then cursor/task (a request) once it is done
+    update(sessionId, { sessionUpdate: 'tool_call', toolCallId: 'call-s', title: 'Task: Explore the code', kind: 'other', status: 'pending', rawInput: { _toolName: 'task', description: 'Explore the code', prompt: 'find auth' } });
+    update(sessionId, { sessionUpdate: 'tool_call_update', toolCallId: 'call-s', status: 'completed', rawOutput: { durationMs: 10369, isBackground: false } });
+    const r = await ask('cursor/task', { toolCallId: 'call-s', description: 'Explore the code', prompt: 'find auth', subagentType: 'explore', agentId: 'sub-1', durationMs: 10369 });
+    say('task=' + (r.result?.outcome?.outcome || 'error'));
+    return end();
+  }
+  if (text.includes('fake-plan')) {
+    update(sessionId, { sessionUpdate: 'plan', entries: [{ content: 'first step', priority: 'high', status: 'completed' }, { content: 'second step', priority: 'medium', status: 'in_progress' }] });
+    say('planned');
+    return end();
+  }
+  update(sessionId, { sessionUpdate: 'agent_thought_chunk', content: { type: 'text', text: 'thinking it over' } });
+  say('fake reply: ');
+  say(text.slice(-40));
+  cost += 0.25;
+  update(sessionId, { sessionUpdate: 'usage_update', used: 1234 + Math.round(cost * 4), size: 200000, cost: { amount: cost, currency: 'USD' } });
+  end();
+}
+
+readline.createInterface({ input: process.stdin }).on('line', (l) => {
+  log({ in: l });
+  let m; try { m = JSON.parse(l); } catch { return; }
+  if (m.id !== undefined && !m.method) { const r = waiting.get(m.id); waiting.delete(m.id); return r && r(m); }
+  const p = m.params || {};
+  switch (m.method) {
+    case 'initialize': return out({ id: m.id, result: { protocolVersion: 1, agentCapabilities: { loadSession: true, mcpCapabilities: { http: true, sse: true }, ...(NAME !== 'gemini' && { sessionCapabilities: { list: {} } }) }, authMethods: CURSOR ? [{ id: 'cursor_login', name: 'Cursor Login' }] : [], agentInfo: { name: 'fake-' + NAME, version: '0' } } });
+    case 'authenticate':
+      authed = true; out({ id: m.id, result: {} });
+      if (pendingNew !== null) { newSession(pendingNew); pendingNew = null; }
+      return;
+    case 'session/new':
+      if (process.env.FAKE_ACP_NOAUTH) return out({ id: m.id, error: { code: -32000, message: 'Gemini API key is missing or not configured.' } });
+      if (!authed) { pendingNew = m.id; return; } // the real cursor-agent never answers before authenticate
+      return newSession(m.id);
+    case 'session/set_model': return out({ id: m.id, result: {} });
+    case 'session/set_mode': return out({ id: m.id, result: {} });
+    case 'session/list': {
+      if (!authed) return out({ id: m.id, error: { code: -32000, message: 'not authenticated' } });
+      const dir = process.env.FAKE_ACP_LIST_CWD;
+      const all = dir ? [1, 2].map((n) => ({ sessionId: `ses_hist_${NAME}_${n}`, cwd: dir, title: `Old ${NAME} session ${n}`, updatedAt: new Date(Date.UTC(2026, 9, n)).toISOString() })) : [];
+      const at = p.cursor ? Number(p.cursor) : 0;
+      return out({ id: m.id, result: { sessions: all.slice(at, at + 1), ...(at + 1 < all.length && { nextCursor: String(at + 1) }) } });
+    }
+    case 'session/load':
+      if (!authed) return out({ id: m.id, error: { code: -32000, message: 'not authenticated' } });
+      if (/^ses_hist_/.test(p.sessionId)) {
+        update(p.sessionId, { sessionUpdate: 'user_message_chunk', content: { type: 'text', text: '<swarm-instructions>\nold instructions\n</swarm-instructions>\n\nlist the ' } });
+        update(p.sessionId, { sessionUpdate: 'user_message_chunk', content: { type: 'text', text: 'files please' } });
+        update(p.sessionId, { sessionUpdate: 'agent_thought_chunk', content: { type: 'text', text: 'I should run ls' } });
+        update(p.sessionId, { sessionUpdate: 'tool_call', toolCallId: 'h1', title: '`ls`', kind: 'execute', status: 'pending', rawInput: { command: 'ls' } });
+        update(p.sessionId, { sessionUpdate: 'tool_call_update', toolCallId: 'h1', status: 'completed', rawOutput: { exitCode: 0, stdout: 'a.txt\nb.txt\n', stderr: '' } });
+        update(p.sessionId, { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'There are two files.' } });
+        update(p.sessionId, { sessionUpdate: 'user_message_chunk', content: { type: 'text', text: 'thanks' } });
+        update(p.sessionId, { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'You are welcome.' } });
+        return out({ id: m.id, result: { configOptions: CURSOR ? cursorOpts() : configOptions(), ...(CURSOR && { models: cursorModels() }) } });
+      }
+      update(p.sessionId, { sessionUpdate: 'user_message_chunk', content: { type: 'text', text: 'old prompt' } });
+      update(p.sessionId, { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'old reply (replayed)' } });
+      update(p.sessionId, { sessionUpdate: 'usage_update', used: 999, size: 200000, cost: { amount: cost = 1, currency: 'USD' } });
+      return out({ id: m.id, result: { configOptions: CURSOR ? cursorOpts() : configOptions(), ...(CURSOR && { models: cursorModels() }) } });
+    case 'cursor/list_available_models':
+      if (!CURSOR) return out({ id: m.id, error: { code: -32601, message: 'unknown method ' + m.method } });
+      if (!authed) return out({ id: m.id, error: { code: -32000, message: 'not authenticated' } });
+      return out({ id: m.id, result: { models: Object.keys(CURSOR_MODELS).map((value) => ({ value, name: value, configOptions: cursorOptsOf(value) })) } });
+    case 'session/set_config_option':
+      if (CURSOR) {
+        const opt = cursorOpts().find((o) => o.id === p.configId);
+        if (!opt || !opt.options.some((o) => o.value === p.value)) return out({ id: m.id, error: { code: -32602, message: 'Invalid params', data: { message: `Invalid ${p.configId} value: ${p.value}` } } });
+        if (p.configId === 'model') cursorModel = p.value; else cursorSet[p.configId] = p.value;
+        return out({ id: m.id, result: { configOptions: cursorOpts() } });
+      }
+      return out({ id: m.id, result: { configOptions: configOptions(p.configId === 'model' ? p.value : undefined) } });
+    case 'session/prompt': return prompt(m.id, p);
+    case 'session/cancel': return turn?.cancel?.();
+    default: if (m.id !== undefined) out({ id: m.id, error: { code: -32601, message: 'unknown method ' + m.method } });
+  }
+});
